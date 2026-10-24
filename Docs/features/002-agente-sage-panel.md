@@ -26,14 +26,14 @@ Modelos: DeepSeek (principal) y LongCat 2.0 (respaldo); Kimi y GLM se descartan 
 ## Criterios de aceptación
 | N.º | Criterio verificable | Comando | Evidencia |
 |---|---|---|---|
-| 1 | Contrato de esquema contra `ModeloDatos.md` | `cd backend && python -m pytest tests/integration/test_schema_contract.py -q` | exit 0 |
-| 2 | Seed inserta lecturas frescas | `cd backend && python -m app.scripts.seed_demo` | exit 0 + conteo |
-| 3 | Health reporta Mongo y LLM | `cd backend && python -m app.scripts.check_health` | JSON |
-| 4 | Consulta principal responde SS-01 con 3 trazas | `cd backend && python -m app.scripts.smoke_demo` | exit 0 |
-| 5 | Backend probado | `cd backend && python -m pytest -q` | exit 0 |
+| 1 | Contrato de esquema contra `ModeloDatos.md` | `cd backend && .venv\Scripts\python.exe -m pytest tests/integration/test_schema_contract.py -q` | exit 0 |
+| 2 | Seed inserta lecturas frescas | `cd backend && .venv\Scripts\python.exe -m app.scripts.seed_demo` | exit 0 + conteo |
+| 3 | Health reporta Mongo y LLM | `cd backend && .venv\Scripts\python.exe -m app.scripts.check_health` | JSON |
+| 4 | Consulta principal responde SS-01 con 3 trazas | `cd backend && .venv\Scripts\python.exe -m app.scripts.smoke_demo` | exit 0 |
+| 5 | Backend probado | `cd backend && .venv\Scripts\python.exe -m pytest -q` | exit 0 |
 | 6 | Frontend compila y prueba | `cd frontend && npm run typecheck && npm run lint && npm run test -- --run && npm run build` | exit 0 |
-| 7 | Seguridad: sin key ni stack | `cd backend && python -m pytest tests/api/test_security.py -q` | exit 0 |
-| 8 | Contexto alineado y docs persistidos | `cd backend && python -m app.scripts.check_docs` | exit 0 |
+| 7 | Seguridad: sin key ni stack | `cd backend && .venv\Scripts\python.exe -m pytest tests/api/test_security.py -q` | exit 0 |
+| 8 | Contexto alineado y docs persistidos | `cd backend && .venv\Scripts\python.exe -m app.scripts.check_docs` | exit 0 |
 
 ## Pasos
 1. Persistir spec y ADR — `docs: registrar spec y ADR del panel Sage`
