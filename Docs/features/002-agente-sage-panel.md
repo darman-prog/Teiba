@@ -50,6 +50,10 @@ Modelos: DeepSeek (principal) y LongCat 2.0 (respaldo); Kimi y GLM se descartan 
 ## Bitácora
 | Criterio | Fecha | Comando | Exit | Commit |
 |---|---|---|---|---|
+| 1 | 2026-10-24 | cd backend && .venv\Scripts\python.exe -m pytest tests/integration/test_schema_contract.py -q | 0 | 17a4362 |
+| 2 | 2026-10-24 | cd backend && .venv\Scripts\python.exe -m app.scripts.seed_demo | 0 | 17a4362 |
+| 5 | 2026-10-24 | cd backend && .venv\Scripts\python.exe -m pytest -q | 0 | 17a4362 |
+| 7 | 2026-10-24 | cd backend && .venv\Scripts\python.exe -m pytest tests/api/test_security.py -q | 0 | 17a4362 |
 
 ## Rollback
 Borrar `backend/` y `frontend/`; `mongosh teiba_db --eval 'db.lecturas.deleteMany({"meta.origen":"demo"})'`;
