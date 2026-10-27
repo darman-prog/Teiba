@@ -7,7 +7,7 @@ MongoDB (`teiba_db`) y muestra las trazas de recuperación en un panel React.
 ## Stack
 
 - Backend: Python 3.11+, FastAPI, PyMongo, SDK de OpenAI contra OpenCode Go.
-- Frontend: React + TypeScript + Vite + Tailwind (pendiente de la fase 8).
+- Frontend: React + TypeScript + Vite; Tailwind y UI pendientes de los prototipos de diseño.
 - Datos: MongoDB 8 en Docker, base `teiba_db`.
 
 ## Requisitos
@@ -23,11 +23,14 @@ MongoDB (`teiba_db`) y muestra las trazas de recuperación en un panel React.
 
 ```powershell
 docker run -d --name mongo-iot -p 27017:27017 -v mongo-iot-data:/data/db mongo:8
-docker cp Scripts\01_crear_objetos.js mongo-iot:/tmp/01.js
-docker cp Scripts\02_cargar_datos.js mongo-iot:/tmp/02.js
+docker cp Docs\Scripts\01_crear_objetos.js mongo-iot:/tmp/01.js
+docker cp Docs\Scripts\02_cargar_datos.js mongo-iot:/tmp/02.js
 docker exec mongo-iot mongosh --quiet --file /tmp/01.js
 docker exec mongo-iot mongosh --quiet --file /tmp/02.js
 ```
+
+> Los scripts JS viven en `Docs/Scripts/` y no se versionan por la regla
+> `/Scripts` de `Docs/.gitignore`. Si clonas el repo, pídelos al equipo.
 
 Los scripts `01` y `02` son los de la entrega; `02` borra y recarga las lecturas
 originales con fecha fija. Después del seed de demo, no vuelvas a ejecutar `02`
@@ -65,8 +68,9 @@ npm install
 npm run dev
 ```
 
-El panel abre en `http://localhost:5173` y consume `http://127.0.0.1:8000`
-(la URL se configura con `VITE_API_URL`).
+El scaffold abre en `http://localhost:5173`, pero todavía muestra el template de
+Vite. La UI final se implementa después de los prototipos de diseño; cuando
+exista, consumirá `http://127.0.0.1:8000` (configurable con `VITE_API_URL`).
 
 ## Consultas de la demo
 
@@ -93,6 +97,7 @@ cd backend
 
 ## Documentación
 
+- Contexto completo del proyecto: [CONTEXT.md](CONTEXT.md).
 - Spec: `Docs/features/002-agente-sage-panel.md`.
 - Decisión de arquitectura: `Docs/adr/002-stack-fastapi-react.md`.
 - Modelo de datos canónico: `Docs/Diseno/ModeloDatos.md`.
