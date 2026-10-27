@@ -814,10 +814,13 @@ cd backend
 | Fecha | 2026-10-24 |
 | Último commit funcional verificado | `2239f47` |
 | Guía de Postman | `99910a7` |
+| Contexto consolidado | `938b0ef` |
+| Entrega 3 (spec) | `8f1ca72` |
 | Tests | 76 passed |
 | Lint | `ruff` limpio |
 | Frontend | Scaffold, sin UI |
 | Mongo | `mongo-iot` con `teiba_db` y 217 lecturas demo |
+| Entrega 3 (Word) | Generado localmente; no se versiona por `.gitignore` |
 
 ### Criterios de la spec 002
 
@@ -848,6 +851,8 @@ cd backend
 | `17a4362` | `docs: ajustar comandos de verificación al entorno virtual` |
 | `2239f47` | `docs: registrar verificación del backend en la bitácora` |
 | `99910a7` | `docs: añadir guía de Postman para probar la API` |
+| `938b0ef` | `docs: consolidar el contexto completo del proyecto` |
+| `8f1ca72` | `docs: registrar entrega 3 en la spec` |
 
 Este documento se añade en un commit posterior y no cambia el estado técnico.
 
@@ -856,10 +861,12 @@ Este documento se añade en un commit posterior y no cambia el estado técnico.
 1. Definir `OPENCODE_API_KEY` y validar `check_model`/`smoke_demo`.
 2. Recibir los prototipos de diseño.
 3. Implementar Tailwind, tokens, cliente API y componentes.
-4. Crear `check_docs.py` para el criterio 8.
+4. Crear `check_docs.py` para el criterio 8 de la spec 002.
 5. Corregir la errata del Word sobre el esquema de lecturas.
 6. Decidir si los scripts JS se versionan o siguen locales.
 7. Opcional: ampliar el panel a las otras cuatro colecciones.
+8. Subir a TEMA el Word de la Entrega 3 (`PROYECTO_CURSO_ENTREGA3.docx`) y los
+   scripts `01`/`02`/`03`; si la plataforma exige `.doc`, convertir en Word.
 
 ## 12. Repositorio y convenciones
 
