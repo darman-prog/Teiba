@@ -96,3 +96,4 @@ cd backend
 - Spec: `Docs/features/002-agente-sage-panel.md`.
 - Decisión de arquitectura: `Docs/adr/002-stack-fastapi-react.md`.
 - Modelo de datos canónico: `Docs/Diseno/ModeloDatos.md`.
+- Guía de Postman y colección de ejemplos: `Docs/API/README.md`.

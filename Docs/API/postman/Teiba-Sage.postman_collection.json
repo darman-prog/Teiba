@@ -1,0 +1,612 @@
+{
+  "info": {
+    "_postman_id": "2b7f3f3e-5e2a-4c8b-9a6d-1f0e7c4b9a21",
+    "name": "Teiba Sage API",
+    "description": "Colección local de la API Teiba Sage.\n\nRequisitos:\n1. MongoDB con los datos de la entrega y el seed de demo.\n2. Backend en http://127.0.0.1:8000.\n3. La key del LLM configurada en backend/.env para las requests del agente.\n\nNo requiere autenticación. Importa también el environment Teiba Local.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Salud",
+      "item": [
+        {
+          "name": "Health",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"200 OK\", () => pm.response.to.have.status(200));",
+                  "const body = pm.response.json();",
+                  "pm.test(\"Mongo responde\", () => pm.expect(body.mongo.ok).to.eql(true));",
+                  "pm.test(\"Base teiba_db\", () => pm.expect(body.mongo.db).to.eql(\"teiba_db\"));",
+                  "pm.test(\"Version presente\", () => pm.expect(body.version).to.be.a(\"string\"));",
+                  "pm.test(\"LLM configurado es boolean\", () => pm.expect(body.llm.configurado).to.be.a(\"boolean\"));",
+                  "pm.test(\"X-Trace-Id presente\", () => pm.expect(pm.response.headers.get(\"X-Trace-Id\")).to.be.a(\"string\").and.not.empty);"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/health",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "health"
+              ]
+            },
+            "description": "Estado de MongoDB y del LLM. Devuelve 200 incluso si status es degraded: revisa mongo.ok y llm.configurado."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Sensores",
+      "item": [
+        {
+          "name": "Calidad del suelo",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"200 OK\", () => pm.response.to.have.status(200));",
+                  "const body = pm.response.json();",
+                  "pm.test(\"items es array\", () => pm.expect(body.items).to.be.an(\"array\"));",
+                  "pm.test(\"total coherente\", () => pm.expect(body.total).to.eql(body.items.length));",
+                  "pm.test(\"estados válidos\", () => {",
+                  "  const validos = [\"ok\", \"warning\", \"danger\", \"sin_datos\"];",
+                  "  body.items.forEach((item) => pm.expect(validos).to.include(item.estado));",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/sensores?tipo=calidad_suelo&limite=5",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "sensores"
+              ],
+              "query": [
+                {
+                  "key": "tipo",
+                  "value": "calidad_suelo"
+                },
+                {
+                  "key": "limite",
+                  "value": "5"
+                }
+              ]
+            },
+            "description": "Catálogo de sensores de suelo. Con el seed de demo: SS-01 danger por pH, SS-02 warning por antigüedad y SS-03 danger por batería."
+          },
+          "response": []
+        },
+        {
+          "name": "Estación meteorológica",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"200 OK\", () => pm.response.to.have.status(200));",
+                  "const body = pm.response.json();",
+                  "pm.test(\"items es array\", () => pm.expect(body.items).to.be.an(\"array\"));",
+                  "pm.test(\"total coherente\", () => pm.expect(body.total).to.eql(body.items.length));"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/sensores?tipo=estacion_meteorologica&limite=5",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "sensores"
+              ],
+              "query": [
+                {
+                  "key": "tipo",
+                  "value": "estacion_meteorologica"
+                },
+                {
+                  "key": "limite",
+                  "value": "5"
+                }
+              ]
+            },
+            "description": "Estaciones meteorológicas. Si no tienen lecturas recientes, estado es sin_datos."
+          },
+          "response": []
+        },
+        {
+          "name": "Antenas",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"200 OK\", () => pm.response.to.have.status(200));",
+                  "const body = pm.response.json();",
+                  "pm.test(\"items es array\", () => pm.expect(body.items).to.be.an(\"array\"));",
+                  "pm.test(\"total coherente\", () => pm.expect(body.total).to.eql(body.items.length));"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/sensores?tipo=antena_enlace&limite=5",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "sensores"
+              ],
+              "query": [
+                {
+                  "key": "tipo",
+                  "value": "antena_enlace"
+                },
+                {
+                  "key": "limite",
+                  "value": "5"
+                }
+              ]
+            },
+            "description": "Antenas de enlace. No reportan telemetría ambiental: es normal ver estado sin_datos."
+          },
+          "response": []
+        },
+        {
+          "name": "Luminarias",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"200 OK\", () => pm.response.to.have.status(200));",
+                  "const body = pm.response.json();",
+                  "pm.test(\"items es array\", () => pm.expect(body.items).to.be.an(\"array\"));",
+                  "pm.test(\"total coherente\", () => pm.expect(body.total).to.eql(body.items.length));"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/sensores?tipo=luminaria_inteligente&limite=5",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "sensores"
+              ],
+              "query": [
+                {
+                  "key": "tipo",
+                  "value": "luminaria_inteligente"
+                },
+                {
+                  "key": "limite",
+                  "value": "5"
+                }
+              ]
+            },
+            "description": "Luminarias inteligentes. No reportan telemetría ambiental: es normal ver estado sin_datos."
+          },
+          "response": []
+        },
+        {
+          "name": "Límite inválido (422)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"422\", () => pm.response.to.have.status(422));",
+                  "pm.test(\"code invalid_request\", () => pm.expect(pm.response.json().code).to.eql(\"invalid_request\"));",
+                  "pm.test(\"details es array\", () => pm.expect(pm.response.json().details).to.be.an(\"array\"));"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/sensores?limite=0",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "sensores"
+              ],
+              "query": [
+                {
+                  "key": "limite",
+                  "value": "0"
+                }
+              ]
+            },
+            "description": "limite debe estar entre 1 y 50. Ejemplo de error 422 con details[].loc."
+          },
+          "response": []
+        },
+        {
+          "name": "Tipo inválido (422)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"422\", () => pm.response.to.have.status(422));",
+                  "pm.test(\"code invalid_request\", () => pm.expect(pm.response.json().code).to.eql(\"invalid_request\"));",
+                  "pm.test(\"details es array\", () => pm.expect(pm.response.json().details).to.be.an(\"array\"));"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/sensores?tipo=otro",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "sensores"
+              ],
+              "query": [
+                {
+                  "key": "tipo",
+                  "value": "otro"
+                }
+              ]
+            },
+            "description": "tipo solo acepta calidad_suelo, estacion_meteorologica, luminaria_inteligente o antena_enlace."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Agente",
+      "item": [
+        {
+          "name": "Consulta principal",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "exec": [
+                  "pm.variables.set(\"requestId\", pm.variables.replaceIn(\"{{$guid}}\"));"
+                ],
+                "type": "text/javascript"
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"200 OK\", () => pm.response.to.have.status(200));",
+                  "const body = pm.response.json();",
+                  "pm.test(\"Respuesta no vacía\", () => pm.expect(body.respuesta).to.be.a(\"string\").and.not.empty);",
+                  "pm.test(\"Trazas es array\", () => pm.expect(body.trazas).to.be.an(\"array\"));",
+                  "pm.test(\"Meta completa\", () => pm.expect(body.meta).to.include.keys(\"modelo\", \"pasos\", \"duracion_ms\", \"cached\", \"trace_id\"));",
+                  "pm.test(\"trace_id coincide\", () => pm.expect(body.meta.trace_id).to.eql(pm.variables.get(\"requestId\")));",
+                  "pm.test(\"X-Trace-Id coincide\", () => pm.expect(pm.response.headers.get(\"X-Trace-Id\")).to.eql(pm.variables.get(\"requestId\")));"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "X-Request-Id",
+                "value": "{{requestId}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"pregunta\": \"¿Cómo está el sensor de calidad del suelo del Sector Norte?\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/agente/consulta",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "agente",
+                "consulta"
+              ]
+            },
+            "description": "Consulta de la demo. Debe responder por SS-01 y mostrar trazas de list_sensors, get_sensor_history y get_device_context. Requiere la key del LLM configurada en backend/.env."
+          },
+          "response": []
+        },
+        {
+          "name": "Consulta antena",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "exec": [
+                  "pm.variables.set(\"requestId\", pm.variables.replaceIn(\"{{$guid}}\"));"
+                ],
+                "type": "text/javascript"
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"200 OK\", () => pm.response.to.have.status(200));",
+                  "const body = pm.response.json();",
+                  "pm.test(\"Respuesta no vacía\", () => pm.expect(body.respuesta).to.be.a(\"string\").and.not.empty);",
+                  "pm.test(\"Trazas es array\", () => pm.expect(body.trazas).to.be.an(\"array\"));",
+                  "pm.test(\"Usa get_devices_by_antenna\", () => {",
+                  "  const tools = body.trazas.map((traza) => traza.tool);",
+                  "  pm.expect(tools).to.include(\"get_devices_by_antenna\");",
+                  "});",
+                  "pm.test(\"trace_id coincide\", () => pm.expect(body.meta.trace_id).to.eql(pm.variables.get(\"requestId\")));"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "X-Request-Id",
+                "value": "{{requestId}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"pregunta\": \"¿Qué sensores dependen de la antena ANT-01 y alguno está sin reportar?\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/agente/consulta",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "agente",
+                "consulta"
+              ]
+            },
+            "description": "Consulta de la demo sobre la antena ANT-01. Debe identificar SS-02 como sin_reportar usando get_devices_by_antenna."
+          },
+          "response": []
+        },
+        {
+          "name": "Pregunta corta (422)",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "exec": [
+                  "pm.variables.set(\"requestId\", pm.variables.replaceIn(\"{{$guid}}\"));"
+                ],
+                "type": "text/javascript"
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"422\", () => pm.response.to.have.status(422));",
+                  "pm.test(\"code invalid_request\", () => pm.expect(pm.response.json().code).to.eql(\"invalid_request\"));",
+                  "pm.test(\"details es array\", () => pm.expect(pm.response.json().details).to.be.an(\"array\"));",
+                  "pm.test(\"traceId coincide\", () => pm.expect(pm.response.json().traceId).to.eql(pm.variables.get(\"requestId\")));"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "X-Request-Id",
+                "value": "{{requestId}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"pregunta\": \"ab\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/agente/consulta",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "agente",
+                "consulta"
+              ]
+            },
+            "description": "La pregunta debe tener entre 3 y 500 caracteres. Este body devuelve 422."
+          },
+          "response": []
+        },
+        {
+          "name": "Campo extra (422)",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "exec": [
+                  "pm.variables.set(\"requestId\", pm.variables.replaceIn(\"{{$guid}}\"));"
+                ],
+                "type": "text/javascript"
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"422\", () => pm.response.to.have.status(422));",
+                  "pm.test(\"code invalid_request\", () => pm.expect(pm.response.json().code).to.eql(\"invalid_request\"));",
+                  "pm.test(\"details es array\", () => pm.expect(pm.response.json().details).to.be.an(\"array\"));",
+                  "pm.test(\"traceId coincide\", () => pm.expect(pm.response.json().traceId).to.eql(pm.variables.get(\"requestId\")));"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "X-Request-Id",
+                "value": "{{requestId}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"pregunta\": \"¿Cómo está el suelo?\",\n  \"extra\": 1\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/agente/consulta",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "agente",
+                "consulta"
+              ]
+            },
+            "description": "El DTO prohíbe campos extra. Este body devuelve 422."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Errores",
+      "item": [
+        {
+          "name": "Ruta inexistente (404)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"404\", () => pm.response.to.have.status(404));",
+                  "pm.test(\"code not_found\", () => pm.expect(pm.response.json().code).to.eql(\"not_found\"));",
+                  "pm.test(\"X-Trace-Id presente\", () => pm.expect(pm.response.headers.get(\"X-Trace-Id\")).to.be.a(\"string\").and.not.empty);"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/no-existe",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "no-existe"
+              ]
+            },
+            "description": "Ejemplo de 404 con el contrato único de errores."
+          },
+          "response": []
+        }
+      ]
+    }
+  ],
+  "auth": {
+    "type": "noauth"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://127.0.0.1:8000",
+      "type": "string"
+    }
+  ]
+}
