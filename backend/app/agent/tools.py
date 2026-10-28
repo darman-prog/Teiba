@@ -1,7 +1,9 @@
 """Herramientas de solo lectura que el LLM puede invocar.
 
 Cada tool devuelve un dict JSON-serializable, acotado y con errores
-explÃ­citos. El LLM nunca ejecuta consultas: solo elige la tool y sus args.
+explicitos. El LLM nunca ejecuta consultas: solo elige la tool y sus args.
+
+Convencion: este archivo usa ASCII sin tildes (lo vigila test_encoding.py).
 """
 import logging
 from datetime import timedelta
@@ -63,9 +65,9 @@ TOOLS = [
         "function": {
             "name": "get_sensor_history",
             "description": (
-                "Devuelve las lecturas recientes de un sensor (mÃ¡s nuevas primero), "
-                "su Ãºltima lectura, la antigÃ¼edad en minutos y la evaluaciÃ³n de "
-                "rangos ya calculada. Si no hay datos en la ventana, indÃ­calo."
+                "Devuelve las lecturas recientes de un sensor (mas nuevas primero), "
+                "su ultima lectura, la antiguedad en minutos y la evaluacion de "
+                "rangos ya calculada. Si no hay datos en la ventana, indicalo."
             ),
             "parameters": {
                 "type": "object",
@@ -84,8 +86,8 @@ TOOLS = [
         "function": {
             "name": "get_device_context",
             "description": (
-                "Datos estÃ¡ticos de un dispositivo: sector, parque, comuna, "
-                "antena de la que depende, alimentaciÃ³n y dispositivos dependientes."
+                "Datos estaticos de un dispositivo: sector, parque, comuna, "
+                "antena de la que depende, alimentacion y dispositivos dependientes."
             ),
             "parameters": {
                 "type": "object",
@@ -100,8 +102,8 @@ TOOLS = [
         "function": {
             "name": "get_devices_by_antenna",
             "description": (
-                "Lista los dispositivos que dependen de una antena y su Ãºltima "
-                "lectura. Marca sin_reportar cuando no hay lecturas o son mÃ¡s "
+                "Lista los dispositivos que dependen de una antena y su ultima "
+                "lectura. Marca sin_reportar cuando no hay lecturas o son mas "
                 "antiguas que el umbral configurado."
             ),
             "parameters": {
@@ -127,7 +129,7 @@ def _sensor_ref(doc: dict) -> dict:
 
 
 class AgentTools:
-    """Dispatcher acotado con validaciÃ³n y errores explÃ­citos."""
+    """Dispatcher acotado con validaciones y errores explicitos."""
 
     def __init__(
         self,
@@ -148,7 +150,7 @@ class AgentTools:
         }
 
     def dispatch(self, name: str, raw_arguments: str) -> dict:
-        """Valida y ejecuta la tool; nunca deja escapar una excepciÃ³n."""
+        """Valida y ejecuta la tool; nunca deja escapar una excepcion."""
         try:
             args = parse_tool_args(name, raw_arguments)
         except ToolValidationError as exc:
@@ -158,7 +160,7 @@ class AgentTools:
             return {
                 "error": {
                     "code": "unknown_tool",
-                    "message": f"La herramienta '{name}' no estÃ¡ permitida.",
+                    "message": f"La herramienta '{name}' no esta permitida.",
                 }
             }
         try:
@@ -179,7 +181,7 @@ class AgentTools:
             if not sectores:
                 return {
                     "estado": "sin_resultados",
-                    "mensaje": f"No encontrÃ© un sector que coincida con '{args.sector}'.",
+                    "mensaje": f"No encontre un sector que coincida con '{args.sector}'.",
                     "items": [],
                 }
             if len(sectores) > 1:
@@ -199,7 +201,7 @@ class AgentTools:
             if not parques:
                 return {
                     "estado": "sin_resultados",
-                    "mensaje": f"No encontrÃ© un parque que coincida con '{args.parque}'.",
+                    "mensaje": f"No encontro un parque que coincida con '{args.parque}'.",
                     "items": [],
                 }
             if len(parques) > 1:
@@ -241,7 +243,7 @@ class AgentTools:
                 "estado": "not_a_sensor",
                 "mensaje": (
                     f"'{args.sensor_id}' es de tipo '{device.get('tipo')}' "
-                    "y no reporta telemetrÃ­a ambiental."
+                    "y no reporta telemetria ambiental."
                 ),
             }
 
@@ -292,8 +294,8 @@ class AgentTools:
             "antiguedad_min": antiguedad,
             "evaluacion": None,
             "resumen": (
-                f"Sin lecturas en las Ãºltimas {args.horas} h; "
-                f"la Ãºltima es de hace {antiguedad} min."
+                f"Sin lecturas en las ultimas {args.horas} h; "
+                f"la ultima es de hace {antiguedad} min."
             ),
         }
 
@@ -375,7 +377,7 @@ class AgentTools:
 
     @staticmethod
     def _alertas_en_ventana(lecturas: list[dict]) -> list[str]:
-        # La alerta de ventana es histórica; la evaluación actual es la última lectura.
+        # La alerta de ventana es historica; la evaluacion actual es la ultima lectura.
         alertas = []
         for nombre in RANGOS:
             valores = [doc.get(nombre) for doc in lecturas if doc.get(nombre) is not None]
