@@ -6,6 +6,17 @@ from pymongo.errors import PyMongoError
 
 from app.api.deps import get_device_repository, get_reading_repository
 
+ORIGIN = "http://testserver"
+
+
+def _login(client: TestClient, correo: str, contrasena: str) -> None:
+    resp = client.post(
+        "/api/auth/login",
+        json={"correo": correo, "contrasena": contrasena},
+        headers={"Origin": ORIGIN},
+    )
+    assert resp.status_code == 200, f"login test fallo: {resp.text}"
+
 
 def _device(device_id: str) -> dict:
     return {
@@ -61,7 +72,7 @@ def _override(app, devices, readings):
     app.dependency_overrides[get_reading_repository] = lambda: readings
 
 
-def test_sensores_estados(app):
+def test_sensores_estados(client, _auth_env):
     ahora = datetime.now(UTC)
     docs = [_device("SS-01"), _device("SS-02"), _device("SS-03")]
     readings = FakeReadings(
@@ -71,10 +82,10 @@ def test_sensores_estados(app):
             "SS-03": _lectura(5.4, ahora - timedelta(minutes=30)),
         }
     )
-    _override(app, FakeDevices(docs), readings)
+    _override(client.app, FakeDevices(docs), readings)
+    _login(client, "admin@teiba.local", "admin12345678")
 
-    with TestClient(app) as client:
-        response = client.get("/api/sensores?tipo=calidad_suelo")
+    response = client.get("/api/sensores?tipo=calidad_suelo")
 
     assert response.status_code == 200
     body = response.json()
@@ -88,11 +99,11 @@ def test_sensores_estados(app):
     assert items["SS-01"]["comuna"] == "Comuna 12"
 
 
-def test_sensores_sin_datos(app):
-    _override(app, FakeDevices([_device("SS-04")]), FakeReadings(latest={}))
+def test_sensores_sin_datos(client, _auth_env):
+    _override(client.app, FakeDevices([_device("SS-04")]), FakeReadings(latest={}))
+    _login(client, "admin@teiba.local", "admin12345678")
 
-    with TestClient(app) as client:
-        response = client.get("/api/sensores")
+    response = client.get("/api/sensores")
 
     assert response.status_code == 200
     item = response.json()["items"][0]
@@ -100,30 +111,46 @@ def test_sensores_sin_datos(app):
     assert item["ultima_lectura"] is None
 
 
-def test_sensores_db_caida(app):
-    _override(app, FakeDevices(error=PyMongoError("caída")), FakeReadings())
+def test_sensores_db_caida(client, _auth_env):
+    _override(client.app, FakeDevices(error=PyMongoError("caída")), FakeReadings())
+    _login(client, "admin@teiba.local", "admin12345678")
 
-    with TestClient(app) as client:
-        response = client.get("/api/sensores")
+    response = client.get("/api/sensores")
 
     assert response.status_code == 503
     assert response.json()["code"] == "db_unavailable"
 
 
-def test_sensores_tipo_invalido(app):
-    _override(app, FakeDevices(), FakeReadings())
+def test_sensores_tipo_invalido(client, _auth_env):
+    _override(client.app, FakeDevices(), FakeReadings())
+    _login(client, "admin@teiba.local", "admin12345678")
 
-    with TestClient(app) as client:
-        response = client.get("/api/sensores?tipo=otro")
+    response = client.get("/api/sensores?tipo=otro")
 
     assert response.status_code == 422
     assert response.json()["code"] == "invalid_request"
 
 
-def test_sensores_limite_invalido(app):
-    _override(app, FakeDevices(), FakeReadings())
+def test_sensores_limite_invalido(client, _auth_env):
+    _override(client.app, FakeDevices(), FakeReadings())
+    _login(client, "admin@teiba.local", "admin12345678")
 
-    with TestClient(app) as client:
-        response = client.get("/api/sensores?limite=0")
+    response = client.get("/api/sensores?limite=0")
 
     assert response.status_code == 422
+    assert response.json()["code"] == "invalid_request"
+
+
+def test_sensores_user_403(client, _auth_env):
+    _override(client.app, FakeDevices([_device("SS-01")]), FakeReadings())
+    _login(client, "user@teiba.local", "user12345678")
+    response = client.get("/api/sensores?tipo=calidad_suelo")
+    assert response.status_code == 403
+    assert response.json()["code"] == "forbidden"
+
+
+def test_sensores_sin_sesion_401(client, _auth_env):
+    _override(client.app, FakeDevices([_device("SS-01")]), FakeReadings())
+    response = client.get("/api/sensores?tipo=calidad_suelo")
+    assert response.status_code == 401
+    assert response.json()["code"] == "not_authenticated"

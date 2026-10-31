@@ -1,11 +1,12 @@
-"""Libro de parques: catálogo de solo lectura para el rol usuario."""
+"""Libro de parques: catálogo de solo lectura. Requiere sesión autenticada."""
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, Path
 from pymongo.errors import PyMongoError
 
-from app.api.deps import get_park_repository
+from app.api.deps import get_park_repository, require_user
 from app.api.errors import ApiError
+from app.domain.auth.models import Usuario
 from app.domain.parks import generar_indicaciones
 from app.infrastructure.mongo_repositories import MongoParkRepository
 from app.schemas import (
@@ -18,10 +19,14 @@ from app.schemas import (
 
 router = APIRouter(tags=["parques"])
 
+# `usuario` no se usa, pero la dependencia exige sesión activa (401 si no).
+Sesionada = Annotated[Usuario, Depends(require_user)]
+
 
 @router.get("/parques", response_model=ParqueListResponse)
 def listar_parques(
     parques: Annotated[MongoParkRepository, Depends(get_park_repository)],
+    _usuario: Sesionada,
 ) -> ParqueListResponse:
     try:
         docs = parques.list_parques()
@@ -39,6 +44,7 @@ def listar_parques(
 def detalle_parque(
     parques: Annotated[MongoParkRepository, Depends(get_park_repository)],
     codigo: Annotated[str, Path(pattern=r"^[A-Za-z0-9-]{1,20}$")],
+    _usuario: Sesionada,
 ) -> ParqueDetalle:
     try:
         doc = parques.get_parque(codigo)

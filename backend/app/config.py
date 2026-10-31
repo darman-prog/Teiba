@@ -4,8 +4,9 @@ Las variables se leen de entorno o de `backend/.env`. Ningún secreto se
 expone en respuestas ni en logs.
 """
 from functools import lru_cache
+from pathlib import Path
 
-from pydantic import SecretStr
+from pydantic import SecretStr, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -45,6 +46,28 @@ class Settings(BaseSettings):
     sin_reportar_min: int = 60
     log_level: str = "INFO"
     tool_result_max_chars: int = 1500
+
+    # --- Autenticación local (SQLite + cookie de sesión) ---
+    # Ruta de la BD de identidad. Se resuelve respecto a backend/ para que el
+    # arranque con `uvicorn app.main:app` desde backend/ o desde la raíz funcione.
+    auth_db_path: str = str(Path(__file__).resolve().parents[1] / "data" / "teiba_auth.db")
+    auth_session_ttl_hours: int = 8
+    auth_cookie_name: str = "teiba_session"
+    # En local se sirve por http; en producción pasar a true junto con HTTPS.
+    auth_cookie_secure: bool = False
+    # Coste bcrypt. 12 en producción, 4 en tests ( configurable por env ).
+    auth_bcrypt_rounds: int = 12
+    # Rate limit de login: fallos por (IP, correo) dentro de la ventana.
+    auth_login_max_failures: int = 5
+    auth_login_window_seconds: int = 60
+
+    @field_validator("cors_origins")
+    @classmethod
+    def cors_no_wildcard(cls, v: str) -> str:
+        """CORS con comodín rompe la defensa CSRF; se prohibe al arrancar."""
+        if "*" in v.split(","):
+            raise ValueError("CORS_ORIGINS no puede contener '*' cuando hay autenticación.")
+        return v
 
     @property
     def cors_origins_list(self) -> list[str]:

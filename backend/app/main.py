@@ -1,7 +1,7 @@
 """Punto de entrada de la API Teiba Sage.
 
-Orden de middlewares: CORS (outer) → TrustedHost → TraceId → RateLimit.
-Así el 429 también sale con CORS y `X-Trace-Id`.
+ Orden de middlewares: CORS (outer) → TrustedHost → TraceId → RateLimit.
+ Así el 429 también sale con CORS y `X-Trace-Id`.
 """
 import logging
 from contextlib import asynccontextmanager
@@ -12,10 +12,12 @@ from starlette.middleware.trustedhost import TrustedHostMiddleware
 
 from app import db as db_module
 from app.api.agent import router as agent_router
+from app.api.auth import router as auth_router
 from app.api.errors import register_exception_handlers
 from app.api.health import router as health_router
 from app.api.middleware import RateLimitMiddleware, TraceIdMiddleware
 from app.api.parks import router as parks_router
+from app.api.security import _RateLimitLogin
 from app.api.sensors import router as sensors_router
 from app.config import get_settings
 
@@ -64,7 +66,11 @@ def create_app() -> FastAPI:
         max_age=600,
     )
 
+    # Rate limiter de login con estado compartido entre requests (misma app).
+    app.state.login_rate_limit = _RateLimitLogin(settings)
+
     register_exception_handlers(app)
+    app.include_router(auth_router, prefix="/api")
     app.include_router(health_router, prefix="/api")
     app.include_router(agent_router, prefix="/api")
     app.include_router(sensors_router, prefix="/api")

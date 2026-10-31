@@ -18,7 +18,9 @@ el docente. El contrato de datos es `Docs/Diseno/ModeloDatos.md` §3.1/§3.3:
 - MongoDB `teiba_db`; `ModeloDatos.md` es la fuente canónica. El `mediciones`
   anidado de `ExplicacionEntrega2.md:153` es errata documental; el esquema
   operativo es plano.
-- Sin autenticación; solo `127.0.0.1`, CORS allowlist y rate limit en memoria.
+- Autenticacion local (ADR 003): SQLite solo identidad/sesiones, cookie HttpOnly,
+  bcrypt, RBAC admin/user. El resto (`127.0.0.1`, CORS exacto, rate limit del agente)
+  sigue vigente.
 - El RAG es un patrón interno del backend, no un nodo de despliegue.
 - LLM: DeepSeek como modelo principal y LongCat 2.0 como respaldo; Kimi y GLM
   se descartan por costo.

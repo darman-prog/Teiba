@@ -8,6 +8,10 @@ updated: 2026-10-27
 ---
 # Feature 003 — Roles de demostración y Libro de parques
 
+> **2026-10-31:** el switch demo Admin/Usuario queda reemplazado por el login real de
+> la [feature 007](007-login-sqlite.md) (cookie + RBAC server-side). Los endpoints de
+> parques pasan a exigir sesión. El libro como tal se mantiene.
+
 ## Objetivo
 App con dos superficies: el administrador usa la estación Sage y el usuario consulta el Libro de parques. Los roles son un switch de demo (sin auth); el libro se alimenta de un endpoint read-only sobre `parques` y `sectores` con indicaciones derivadas.
 
