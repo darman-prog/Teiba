@@ -97,7 +97,7 @@ cd backend
 
 ## Documentación
 
-- Contexto completo del proyecto: [CONTEXT.md](CONTEXT.md).
+- Contexto completo del proyecto: [Docs/CONTEXT.md](Docs/CONTEXT.md).
 - Spec: `Docs/features/002-agente-sage-panel.md`.
 - Decisión de arquitectura: `Docs/adr/002-stack-fastapi-react.md`.
 - Modelo de datos canónico: `Docs/Diseno/ModeloDatos.md`.

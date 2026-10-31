@@ -645,8 +645,8 @@ todas partes.
 
 ### Layout
 
-1. Header fijo: “Teiba · Sage”, subtítulo, pills de Mongo/modelo/demo y acción
-   “Nueva consulta”.
+1. Header fijo: marca “Teiba”, subtítulo y switch de rol; sin pills ni
+   navegación entre secciones. La respuesta muestra pasos y segundos, no el modelo.
 2. Tira de 5 sensores de suelo: ID, sector, última lectura, batería y estado.
 3. Chat a la izquierda (8/12), trazas a la derecha (4/12).
 4. Input fijo al fondo del chat con sugerencias en el estado vacío.
