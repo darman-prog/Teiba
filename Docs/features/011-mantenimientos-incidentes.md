@@ -50,6 +50,7 @@ transacciones: el estado del incidente se actualiza con una acción explícita.
 ## Bitácora
 | Criterio | Fecha | Comando | Exit | Commit |
 |---|---|---|---|---|
+| 1 | 2026-10-31 | cd backend && .\.venv\Scripts\python.exe -m pytest tests/unit/test_maintenance.py -q | 0 | f8def0a |
 
 ## Rollback
 Revertir los commits de `feat/mantenimientos`; no hay migración de datos existente.
