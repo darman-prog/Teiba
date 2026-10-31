@@ -141,6 +141,54 @@ class MongoDeviceRepository:
         return self._db.dispositivos.count_documents({"depende_de": antena})
 
 
+class MongoParkRepository:
+    """Lectura de parques con sus sectores para el libro de parques."""
+
+    def __init__(self, db: Database):
+        self._db = db
+
+    def list_parques(self) -> list[dict[str, Any]]:
+        # Un solo aggregate: evita el N+1 de contar sectores por parque.
+        pipeline = [
+            {"$sort": {"codigo": 1}},
+            {
+                "$lookup": {
+                    "from": "sectores",
+                    "localField": "_id",
+                    "foreignField": "parque_id",
+                    "as": "_sectores",
+                }
+            },
+            {
+                "$project": {
+                    "_id": 0,
+                    "codigo": 1,
+                    "nombre": 1,
+                    "direccion": "$ubicacion.direccion",
+                    "comuna": "$ubicacion.comuna",
+                    "area_m2": 1,
+                    "tipo_parque": 1,
+                    "estado_general": 1,
+                    "total_sectores": {"$size": "$_sectores"},
+                }
+            },
+        ]
+        return list(self._db.parques.aggregate(pipeline))
+
+    def get_parque(self, codigo: str) -> dict[str, Any] | None:
+        parque = self._db.parques.find_one({"codigo": codigo})
+        if parque is None:
+            return None
+        sectores = list(
+            self._db.sectores.find(
+                {"parque_id": parque["_id"]},
+                {"_id": 0, "codigo": 1, "nombre": 1, "tipo_suelo": 1, "zona_riesgo": 1},
+            ).sort("codigo", 1)
+        )
+        parque.pop("_id", None)
+        return {**parque, "sectores": sectores}
+
+
 class MongoReadingRepository:
     """Lectura de la colección time-series `lecturas`."""
 

@@ -81,3 +81,43 @@ class SensorItem(BaseModel):
 class SensorListResponse(BaseModel):
     items: list[SensorItem]
     total: int
+
+
+class ParqueResumen(BaseModel):
+    codigo: str
+    nombre: str
+    comuna: str | None = None
+    direccion: str | None = None
+    area_m2: float | None = None
+    tipo_parque: str | None = None
+    estado_general: str | None = None
+    total_sectores: int = 0
+
+
+class ParqueSector(BaseModel):
+    codigo: str | None = None
+    nombre: str
+    tipo_suelo: str | None = None
+    zona_riesgo: str | None = None
+
+
+class Indicacion(BaseModel):
+    nivel: Literal["info", "warning"]
+    mensaje: str
+
+
+class ParqueDetalle(BaseModel):
+    codigo: str
+    nombre: str
+    comuna: str | None = None
+    direccion: str | None = None
+    area_m2: float | None = None
+    tipo_parque: str | None = None
+    estado_general: str | None = None
+    sectores: list[ParqueSector] = []
+    indicaciones: list[Indicacion] = []
+
+
+class ParqueListResponse(BaseModel):
+    items: list[ParqueResumen]
+    total: int

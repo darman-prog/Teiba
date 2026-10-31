@@ -15,6 +15,7 @@ from app.api.agent import router as agent_router
 from app.api.errors import register_exception_handlers
 from app.api.health import router as health_router
 from app.api.middleware import RateLimitMiddleware, TraceIdMiddleware
+from app.api.parks import router as parks_router
 from app.api.sensors import router as sensors_router
 from app.config import get_settings
 
@@ -67,6 +68,7 @@ def create_app() -> FastAPI:
     app.include_router(health_router, prefix="/api")
     app.include_router(agent_router, prefix="/api")
     app.include_router(sensors_router, prefix="/api")
+    app.include_router(parks_router, prefix="/api")
     return app
 
 

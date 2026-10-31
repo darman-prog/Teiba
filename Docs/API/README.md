@@ -10,7 +10,7 @@ Necesitas MongoDB con los datos de la entrega, el seed de demo y el backend en
 ejecución. Desde la raíz del repo:
 
 ```powershell
-# 1. MongoDB (si no está corriendo)
+# 1. MongoDB (si ya existe el contenedor mongo-iot; si no, usa el README)
 docker start mongo-iot
 
 # 2. Lecturas frescas para la demo

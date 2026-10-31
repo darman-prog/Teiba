@@ -27,6 +27,14 @@ class DeviceRepository(Protocol):
     def count_children(self, antena: str) -> int: ...
 
 
+class ParkRepository(Protocol):
+    """Lectura de parques y sus sectores para el libro de parques."""
+
+    def list_parques(self) -> list[dict[str, Any]]: ...
+
+    def get_parque(self, codigo: str) -> dict[str, Any] | None: ...
+
+
 class ReadingRepository(Protocol):
     def history(
         self,
