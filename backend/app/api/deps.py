@@ -10,12 +10,17 @@ from app.infrastructure.clock import SystemClock
 from app.infrastructure.llm import OpenCodeLLMClient
 from app.infrastructure.mongo_repositories import (
     MongoDeviceRepository,
+    MongoParkRepository,
     MongoReadingRepository,
 )
 
 
 def get_device_repository() -> MongoDeviceRepository:
     return MongoDeviceRepository(get_db())
+
+
+def get_park_repository() -> MongoParkRepository:
+    return MongoParkRepository(get_db())
 
 
 def get_reading_repository() -> MongoReadingRepository:
