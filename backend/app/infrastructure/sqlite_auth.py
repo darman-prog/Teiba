@@ -89,8 +89,11 @@ class BaseAuth:
         conn.execute("PRAGMA user_version = 2")
 
     def _migrar_v1_a_v2(self, conn: sqlite3.Connection) -> None:
-        """Reconstruye users para admitir operator sin perder ids ni sesiones."""
-        # Foreign keys debe apagarse fuera de la transacción; dentro no tiene efecto.
+        """Reconstruye users para admitir operator sin perder ids ni sesiones.
+
+        Secuencia aprobada: FK off -> BEGIN -> reconstruir -> user_version=2 -> COMMIT
+        -> FK on -> foreign_key_check. Sin executescript dentro de la transacción.
+        """
         conn.execute("PRAGMA foreign_keys = OFF")
         try:
             conn.execute("BEGIN IMMEDIATE")
@@ -119,15 +122,6 @@ class BaseAuth:
             conn.execute("DROP TABLE users")
             conn.execute("ALTER TABLE users_v2 RENAME TO users")
             conn.execute("CREATE UNIQUE INDEX ux_users_email ON users(email)")
-
-            # Se valida antes del COMMIT: con huérfanos se revierte la transacción.
-            problemas = conn.execute("PRAGMA foreign_key_check").fetchall()
-            if problemas:
-                conn.execute("ROLLBACK")
-                raise RuntimeError(
-                    "La migración SQLite v2 dejó referencias huérfanas; se revirtió."
-                )
-
             conn.execute("PRAGMA user_version = 2")
             conn.execute("COMMIT")
         except Exception:
@@ -139,6 +133,13 @@ class BaseAuth:
             raise
         finally:
             conn.execute("PRAGMA foreign_keys = ON")
+
+        # Tras confirmar, se verifica la integridad referencial con FK activas.
+        problemas = conn.execute("PRAGMA foreign_key_check").fetchall()
+        if problemas:
+            raise RuntimeError(
+                "La migración SQLite v2 dejó referencias huérfanas tras el COMMIT."
+            )
 
     def limpiar_expiradas(self, ahora: datetime) -> int:
         with self._conectar() as conn:
