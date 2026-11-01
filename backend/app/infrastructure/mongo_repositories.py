@@ -7,6 +7,7 @@ import re
 from datetime import datetime
 from typing import Any
 
+from bson import ObjectId
 from pymongo.database import Database
 
 DEVICE_PROJECTION = {
@@ -23,6 +24,15 @@ DEVICE_PROJECTION = {
     "parque": "$_parque.nombre",
     "comuna": "$_parque.ubicacion.comuna",
 }
+
+
+def _oid(value: Any) -> ObjectId:
+    """Normaliza un id de ruta/body a ObjectId; rechaza texto inválido."""
+    if isinstance(value, ObjectId):
+        return value
+    if not isinstance(value, str) or not ObjectId.is_valid(value):
+        raise ValueError("Identificador inválido.")
+    return ObjectId(value)
 
 
 class MongoDeviceRepository:
@@ -189,6 +199,404 @@ class MongoParkRepository:
         return {**parque, "sectores": sectores}
 
 
+class MongoProfileRepository:
+    """Perfiles de negocio; el correo es el puente con la sesión de auth."""
+
+    PROJECTION = {"_id": 1, "nombre": 1, "correo": 1, "rol": 1}
+
+    def __init__(self, db: Database):
+        self._db = db
+
+    def get_by_correo(self, correo: str) -> dict[str, Any] | None:
+        limpio = (correo or "").strip().lower()
+        if not limpio:
+            return None
+        return self._db.usuarios.find_one({"correo": limpio}, self.PROJECTION)
+
+    def get_by_id(self, perfil_id: Any) -> dict[str, Any] | None:
+        return self._db.usuarios.find_one({"_id": _oid(perfil_id)}, self.PROJECTION)
+
+    def list_operadores(self) -> list[dict[str, Any]]:
+        return list(
+            self._db.usuarios.find(
+                {"rol": "operador_mantenimiento"},
+                self.PROJECTION,
+            ).sort("nombre", 1)
+        )
+
+
+class MongoMaintenanceRepository:
+    """Tareas de mantenimiento con sus referencias resueltas."""
+
+    def __init__(self, db: Database):
+        self._db = db
+
+    def list_tareas(
+        self,
+        *,
+        tarea_id: Any | None = None,
+        estado: str | None = None,
+        prioridad: str | None = None,
+        parque_id: Any | None = None,
+        responsable_id: Any | None = None,
+        incidente_id: Any | None = None,
+        limite: int = 50,
+    ) -> list[dict[str, Any]]:
+        filtro: dict[str, Any] = {}
+        if tarea_id is not None:
+            filtro["_id"] = _oid(tarea_id)
+        if estado:
+            filtro["estado"] = estado
+        if prioridad:
+            filtro["prioridad"] = prioridad
+        if parque_id is not None:
+            filtro["parque_id"] = _oid(parque_id)
+        if responsable_id is not None:
+            filtro["responsable_id"] = _oid(responsable_id)
+        if incidente_id is not None:
+            filtro["incidente_id"] = _oid(incidente_id)
+
+        pipeline = [
+            {"$match": filtro},
+            {
+                "$addFields": {
+                    "_prioridad_orden": {
+                        "$switch": {
+                            "branches": [
+                                {"case": {"$eq": ["$prioridad", "alta"]}, "then": 0},
+                                {"case": {"$eq": ["$prioridad", "baja"]}, "then": 2},
+                            ],
+                            "default": 1,
+                        }
+                    }
+                }
+            },
+            {"$sort": {"_prioridad_orden": 1, "fecha_programada": 1, "_id": 1}},
+            {"$limit": max(1, min(limite, 50))},
+            {
+                "$lookup": {
+                    "from": "parques",
+                    "localField": "parque_id",
+                    "foreignField": "_id",
+                    "as": "_parque",
+                }
+            },
+            {"$set": {"_parque": {"$arrayElemAt": ["$_parque", 0]}}},
+            {
+                "$lookup": {
+                    "from": "usuarios",
+                    "localField": "responsable_id",
+                    "foreignField": "_id",
+                    "as": "_responsable",
+                }
+            },
+            {"$set": {"_responsable": {"$arrayElemAt": ["$_responsable", 0]}}},
+            {
+                "$lookup": {
+                    "from": "incidentes",
+                    "localField": "incidente_id",
+                    "foreignField": "_id",
+                    "as": "_incidente",
+                }
+            },
+            {"$set": {"_incidente": {"$arrayElemAt": ["$_incidente", 0]}}},
+            {
+                "$lookup": {
+                    "from": "elementos_inventario",
+                    "localField": "elemento_id",
+                    "foreignField": "_id",
+                    "as": "_elemento",
+                }
+            },
+            {"$set": {"_elemento": {"$arrayElemAt": ["$_elemento", 0]}}},
+            {
+                "$project": {
+                    "_id": 1,
+                    "tipo": 1,
+                    "descripcion": 1,
+                    "prioridad": 1,
+                    "estado": 1,
+                    "fecha_programada": 1,
+                    "fecha_ejecucion": 1,
+                    "fecha_reapertura": 1,
+                    "nota_cierre": 1,
+                    "nota_reapertura": 1,
+                    "costo_estimado": 1,
+                    "parque_id": 1,
+                    "responsable_id": 1,
+                    "incidente_id": 1,
+                    "elemento_id": 1,
+                    "parque": {
+                        "$cond": [
+                            {"$eq": ["$_parque", None]},
+                            None,
+                            {
+                                "id": "$_parque._id",
+                                "codigo": "$_parque.codigo",
+                                "nombre": "$_parque.nombre",
+                            },
+                        ]
+                    },
+                    "responsable": {
+                        "$cond": [
+                            {"$eq": ["$_responsable", None]},
+                            None,
+                            {
+                                "id": "$_responsable._id",
+                                "nombre": "$_responsable.nombre",
+                                "rol": "$_responsable.rol",
+                            },
+                        ]
+                    },
+                    "incidente": {
+                        "$cond": [
+                            {"$eq": ["$_incidente", None]},
+                            None,
+                            {
+                                "id": "$_incidente._id",
+                                "tipo": "$_incidente.tipo",
+                                "descripcion": "$_incidente.descripcion",
+                                "prioridad": "$_incidente.prioridad",
+                                "estado": "$_incidente.estado",
+                            },
+                        ]
+                    },
+                    "elemento": {
+                        "$cond": [
+                            {"$eq": ["$_elemento", None]},
+                            None,
+                            {
+                                "id": "$_elemento._id",
+                                "tipo_elemento": "$_elemento.tipo_elemento",
+                                "cantidad": "$_elemento.cantidad",
+                                "estado": "$_elemento.estado",
+                            },
+                        ]
+                    },
+                }
+            },
+        ]
+        return list(self._db.mantenimientos.aggregate(pipeline))
+
+    def get_tarea(self, tarea_id: Any) -> dict[str, Any] | None:
+        docs = self.list_tareas(tarea_id=tarea_id, limite=1)
+        return docs[0] if docs else None
+
+    def create_tarea(self, doc: dict[str, Any]) -> Any:
+        return self._db.mantenimientos.insert_one(doc).inserted_id
+
+    def update_estado(
+        self,
+        tarea_id: Any,
+        *,
+        estado: str,
+        campo_nota: str | None,
+        nota: str | None,
+        limpia_ejecucion: bool,
+        marca_reapertura: bool,
+        ahora: datetime,
+    ) -> dict[str, Any] | None:
+        cambios: dict[str, Any] = {"estado": estado}
+        if campo_nota and nota is not None:
+            cambios[campo_nota] = nota
+        if estado == "finalizado" and not limpia_ejecucion:
+            cambios["fecha_ejecucion"] = ahora
+        if limpia_ejecucion:
+            # Se deja el campo en null para que el DTO mantenga una forma estable.
+            cambios["fecha_ejecucion"] = None
+        if marca_reapertura:
+            cambios["fecha_reapertura"] = ahora
+
+        update: dict[str, Any] = {"$set": cambios}
+        resultado = self._db.mantenimientos.update_one({"_id": _oid(tarea_id)}, update)
+        if resultado.matched_count == 0:
+            return None
+        return self.get_tarea(tarea_id)
+
+    def reasignar(self, tarea_id: Any, responsable_id: Any) -> dict[str, Any] | None:
+        resultado = self._db.mantenimientos.update_one(
+            {"_id": _oid(tarea_id)},
+            {"$set": {"responsable_id": _oid(responsable_id)}},
+        )
+        if resultado.matched_count == 0:
+            return None
+        return self.get_tarea(tarea_id)
+
+    def ensure_indexes(self) -> None:
+        self._db.mantenimientos.create_index(
+            [("responsable_id", 1), ("estado", 1), ("fecha_programada", 1)]
+        )
+        self._db.mantenimientos.create_index(
+            [("estado", 1), ("prioridad", -1), ("fecha_programada", 1)]
+        )
+        self._db.mantenimientos.create_index([("incidente_id", 1)])
+        self._db.mantenimientos.create_index([("parque_id", 1)])
+
+
+class MongoIncidentRepository:
+    """Incidentes ciudadanos con parque y reportante resueltos."""
+
+    def __init__(self, db: Database):
+        self._db = db
+
+    def list_incidentes(
+        self,
+        *,
+        incidente_id: Any | None = None,
+        parque_id: Any | None = None,
+        estados: list[str] | None = None,
+        limite: int = 50,
+    ) -> list[dict[str, Any]]:
+        filtro: dict[str, Any] = {}
+        if incidente_id is not None:
+            filtro["_id"] = _oid(incidente_id)
+        if parque_id is not None:
+            filtro["parque_id"] = _oid(parque_id)
+        if estados:
+            filtro["estado"] = {"$in": estados}
+
+        pipeline = [
+            {"$match": filtro},
+            {"$sort": {"fecha_hora": -1, "_id": 1}},
+            {"$limit": max(1, min(limite, 50))},
+            {
+                "$lookup": {
+                    "from": "parques",
+                    "localField": "parque_id",
+                    "foreignField": "_id",
+                    "as": "_parque",
+                }
+            },
+            {"$set": {"_parque": {"$arrayElemAt": ["$_parque", 0]}}},
+            {
+                "$lookup": {
+                    "from": "usuarios",
+                    "localField": "reportado_por_id",
+                    "foreignField": "_id",
+                    "as": "_reportante",
+                }
+            },
+            {"$set": {"_reportante": {"$arrayElemAt": ["$_reportante", 0]}}},
+            {
+                "$project": {
+                    "_id": 1,
+                    "tipo": 1,
+                    "descripcion": 1,
+                    "fecha_hora": 1,
+                    "estado": 1,
+                    "prioridad": 1,
+                    "parque_id": 1,
+                    "reportado_por_id": 1,
+                    "parque": {
+                        "$cond": [
+                            {"$eq": ["$_parque", None]},
+                            None,
+                            {
+                                "id": "$_parque._id",
+                                "codigo": "$_parque.codigo",
+                                "nombre": "$_parque.nombre",
+                            },
+                        ]
+                    },
+                    "reportado_por": {
+                        "$cond": [
+                            {"$eq": ["$_reportante", None]},
+                            None,
+                            {
+                                "id": "$_reportante._id",
+                                "nombre": "$_reportante.nombre",
+                            },
+                        ]
+                    },
+                }
+            },
+        ]
+        return list(self._db.incidentes.aggregate(pipeline))
+
+    def get_incidente(self, incidente_id: Any) -> dict[str, Any] | None:
+        docs = self.list_incidentes(incidente_id=incidente_id, limite=1)
+        return docs[0] if docs else None
+
+    def update_estado(self, incidente_id: Any, estado: str) -> dict[str, Any] | None:
+        resultado = self._db.incidentes.update_one(
+            {"_id": _oid(incidente_id)},
+            {"$set": {"estado": estado}},
+        )
+        if resultado.matched_count == 0:
+            return None
+        return self.get_incidente(incidente_id)
+
+    def ensure_indexes(self) -> None:
+        self._db.incidentes.create_index([("parque_id", 1), ("estado", 1)])
+        self._db.incidentes.create_index([("fecha_hora", -1)])
+
+
+class MongoInventoryRepository:
+    """Elementos de inventario por parque para vincular tareas."""
+
+    def __init__(self, db: Database):
+        self._db = db
+
+    def list_elementos(
+        self,
+        *,
+        parque_id: Any | None = None,
+        elemento_id: Any | None = None,
+        limite: int = 50,
+    ) -> list[dict[str, Any]]:
+        filtro: dict[str, Any] = {}
+        if parque_id is not None:
+            filtro["parque_id"] = _oid(parque_id)
+        if elemento_id is not None:
+            filtro["_id"] = _oid(elemento_id)
+
+        pipeline = [
+            {"$match": filtro},
+            {"$sort": {"tipo_elemento": 1, "_id": 1}},
+            {"$limit": max(1, min(limite, 50))},
+            {
+                "$lookup": {
+                    "from": "sectores",
+                    "localField": "sector_id",
+                    "foreignField": "_id",
+                    "as": "_sector",
+                }
+            },
+            {"$set": {"_sector": {"$arrayElemAt": ["$_sector", 0]}}},
+            {
+                "$project": {
+                    "_id": 1,
+                    "parque_id": 1,
+                    "sector_id": 1,
+                    "tipo_elemento": 1,
+                    "cantidad": 1,
+                    "estado": 1,
+                    "sector": {
+                        "$cond": [
+                            {"$eq": ["$_sector", None]},
+                            None,
+                            {
+                                "id": "$_sector._id",
+                                "codigo": "$_sector.codigo",
+                                "nombre": "$_sector.nombre",
+                            },
+                        ]
+                    },
+                }
+            },
+        ]
+        return list(self._db.elementos_inventario.aggregate(pipeline))
+
+    def get_elemento(self, elemento_id: Any) -> dict[str, Any] | None:
+        docs = self.list_elementos(elemento_id=elemento_id, limite=1)
+        return docs[0] if docs else None
+
+    def ensure_indexes(self) -> None:
+        self._db.elementos_inventario.create_index(
+            [("parque_id", 1), ("tipo_elemento", 1)]
+        )
+
+
 class MongoReadingRepository:
     """Lectura de la colección time-series `lecturas`."""
 
@@ -239,20 +647,3 @@ class MongoReadingRepository:
             row["_id"]: row["doc"]
             for row in self._db.lecturas.aggregate(pipeline)
         }
-
-
-class MongoProfileRepository:
-    """Lectura mínima del perfil de negocio para enriquecer la sesión."""
-
-    def __init__(self, db: Database):
-        self._db = db
-
-    def get_by_correo(self, correo: str) -> dict[str, Any] | None:
-        """Devuelve el perfil por correo normalizado; nunca expone PII extra."""
-        limpio = (correo or "").strip().lower()
-        if not limpio:
-            return None
-        return self._db.usuarios.find_one(
-            {"correo": limpio},
-            {"_id": 1, "nombre": 1, "correo": 1, "rol": 1},
-        )

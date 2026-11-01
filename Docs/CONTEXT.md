@@ -98,10 +98,9 @@ respuesta trazable.
 
 - Neo4j, base de grafos, embeddings y RAG vectorial.
 - Autenticación, autorización, multiusuario y despliegue público.
-- CRUD de parques, sectores, inventario, mantenimientos o incidentes.
+- CRUD de parques, sectores, inventario o usuarios; el panel de mantenimientos usa lectura de incidentes e inventario y un CRUD acotado de tareas.
 - Mapas, gráficas, reportes descargables y acciones físicas.
 - Edición del documento Word de la entrega.
-- Uso de las otras cuatro colecciones en el panel.
 
 ### Decisiones vigentes
 
@@ -280,7 +279,7 @@ Este resumen no reemplaza ese documento.
 - Base: `teiba_db`.
 - 8 colecciones: `parques`, `sectores`, `dispositivos`, `lecturas`,
   `elementos_inventario`, `mantenimientos`, `incidentes`, `usuarios`.
-- La app usa solo las cuatro primeras. Las otras cuatro quedan intactas.
+- La app usa las cuatro primeras; desde la feature 011 también usa `elementos_inventario`, `mantenimientos`, `incidentes` y `usuarios` para tareas y perfiles.
 
 ### Colecciones que usa el panel
 
@@ -985,8 +984,7 @@ aparecen fuera de aquí, el documento está mal.
    final.
 6. **Scripts JS**: decidir si se versionan o se mantienen locales; no se toca el
    `.gitignore` sin acuerdo.
-7. **Alcance futuro**: valorar una vista de mantenimientos e incidentes con las
-   otras cuatro colecciones.
+7. **Mantenimientos**: la vista de tareas e incidentes vive en `feat/mantenimientos` (spec 011).
 
 Cuando el frontend esté implementado, este archivo debe actualizar su sección 8,
 su sección 11 y su fecha.

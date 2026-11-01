@@ -10,8 +10,9 @@ web
 
 Operador de parques del área metropolitana de Bucaramanga: pregunta por el
 estado de sensores IoT sin conocer IDs ni colecciones, en una demo local.
-El profesor evaluador es audiencia secundaria: verifica datos reales y trazas
-auditables. El desarrollador reproduce la demo desde el repo.
+El operador de mantenimiento recibe tareas asignadas, las inicia y las cierra
+con una nota. El profesor evaluador es audiencia secundaria: verifica datos
+reales y trazas auditables. El desarrollador reproduce la demo desde el repo.
 
 ## Product Purpose
 
@@ -38,10 +39,13 @@ tráfico real, sin exposición a LAN. La key del LLM vive solo en
 ## Capabilities and Constraints
 
 El panel Sage ofrece tira de 5 sensores de suelo, chat con Sage, ruta de la
-señal por respuesta, estados empty/loading/error/success y libro de parques
-de solo lectura. Terminología del contrato: `snake_case`, `trazas[]`,
-`meta.trace_id`, `traceId` en errores. Sin CRUD, mapas, gráficas históricas
-ni actuadores. Rate limit: 10 POST/min por IP, 2 concurrentes. Pregunta de
+señal por respuesta, estados empty/loading/error/success, libro de parques de
+solo lectura y una vista de mantenimientos: el admin asigna, reasigna, finaliza
+casos externos y reabre con nota; el operador inicia y finaliza solo sus tareas.
+Terminología del contrato: `snake_case`, `trazas[]`, `meta.trace_id`, `traceId`
+en errores. Sin CRUD de parques, sectores, inventario ni usuarios; los
+incidentes y el inventario se leen para vincular tareas. Sin mapas, gráficas
+históricas ni actuadores. Rate limit: 10 POST/min por IP, 2 concurrentes. Pregunta de
 3–500 caracteres. Decisiones abiertas: ninguna material pendiente.
 
 ## Brand Commitments

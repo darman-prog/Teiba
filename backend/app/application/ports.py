@@ -38,9 +38,84 @@ class ParkRepository(Protocol):
 
 
 class ProfileRepository(Protocol):
-    """Perfil de negocio de Mongo; auth lo resuelve por correo."""
+    """Perfiles de negocio en Mongo, enlazados por correo con la sesión."""
 
     def get_by_correo(self, correo: str) -> dict[str, Any] | None: ...
+
+    def get_by_id(self, perfil_id: Any) -> dict[str, Any] | None: ...
+
+    def list_operadores(self) -> list[dict[str, Any]]: ...
+
+
+class MaintenanceRepository(Protocol):
+    """Tareas de mantenimiento y su ciclo de vida."""
+
+    def list_tareas(
+        self,
+        *,
+        tarea_id: Any | None = None,
+        estado: str | None = None,
+        prioridad: str | None = None,
+        parque_id: Any | None = None,
+        responsable_id: Any | None = None,
+        incidente_id: Any | None = None,
+        limite: int = 50,
+    ) -> list[dict[str, Any]]: ...
+
+    def get_tarea(self, tarea_id: Any) -> dict[str, Any] | None: ...
+
+    def create_tarea(self, doc: dict[str, Any]) -> Any: ...
+
+    def update_estado(
+        self,
+        tarea_id: Any,
+        *,
+        estado: str,
+        campo_nota: str | None,
+        nota: str | None,
+        limpia_ejecucion: bool,
+        marca_reapertura: bool,
+        ahora: datetime,
+    ) -> dict[str, Any] | None: ...
+
+    def reasignar(self, tarea_id: Any, responsable_id: Any) -> dict[str, Any] | None: ...
+
+    def ensure_indexes(self) -> None: ...
+
+
+class IncidentRepository(Protocol):
+    """Lectura y cambio de estado de incidentes ciudadanos."""
+
+    def list_incidentes(
+        self,
+        *,
+        incidente_id: Any | None = None,
+        parque_id: Any | None = None,
+        estados: list[str] | None = None,
+        limite: int = 50,
+    ) -> list[dict[str, Any]]: ...
+
+    def get_incidente(self, incidente_id: Any) -> dict[str, Any] | None: ...
+
+    def update_estado(self, incidente_id: Any, estado: str) -> dict[str, Any] | None: ...
+
+    def ensure_indexes(self) -> None: ...
+
+
+class InventoryRepository(Protocol):
+    """Elementos de inventario para vincular tareas."""
+
+    def list_elementos(
+        self,
+        *,
+        parque_id: Any | None = None,
+        elemento_id: Any | None = None,
+        limite: int = 50,
+    ) -> list[dict[str, Any]]: ...
+
+    def get_elemento(self, elemento_id: Any) -> dict[str, Any] | None: ...
+
+    def ensure_indexes(self) -> None: ...
 
 
 class ReadingRepository(Protocol):
