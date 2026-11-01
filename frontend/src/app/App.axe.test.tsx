@@ -1,37 +1,84 @@
-import { describe, expect, it, vi, beforeEach } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { render } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { axe } from 'vitest-axe';
-import App from '../app/App';
+import App from './App';
+import { ApiError } from '../api/errors';
+import type { SessionResponse } from '../types/api';
 
-// Axe sobre la app con fixtures: sin violaciones críticas.
-describe('axe App', () => {
-  beforeEach(() => {
-    vi.stubEnv('VITE_USE_MOCKS', 'true');
-    sessionStorage.setItem('teiba-role', 'admin');
-  });
+const state = vi.hoisted(() => ({ session: null as unknown, fail: null as unknown }));
 
-  it('estación sin violaciones', async () => {
-    const { container } = render(
-      <MemoryRouter initialEntries={['/sage']}>
-        <App />
-      </MemoryRouter>,
+vi.mock('../api/auth', () => ({
+  fetchMe: vi.fn(async () => {
+    if (state.fail) throw state.fail;
+    return { data: state.session, traceId: null };
+  }),
+  postLogin: vi.fn(),
+  postLogout: vi.fn(async () => ({ data: null, traceId: null })),
+}));
+
+const ADMIN: SessionResponse = {
+  usuario: { correo: 'admin@teiba.local', rol: 'admin' },
+  perfil: {
+    id: 'admin-mongo',
+    nombre: 'Ana Administradora',
+    correo: 'admin@teiba.local',
+    rol: 'administrador',
+  },
+  expira_en: '2026-10-31T20:00:00Z',
+};
+
+const USER: SessionResponse = {
+  usuario: { correo: 'user@teiba.local', rol: 'user' },
+  perfil: {
+    id: 'user-mongo',
+    nombre: 'Carla Ciudadana',
+    correo: 'user@teiba.local',
+    rol: 'ciudadano',
+  },
+  expira_en: '2026-10-31T20:00:00Z',
+};
+
+const SIN_PERFIL: SessionResponse = {
+  usuario: { correo: 'operador@teiba.local', rol: 'operator' },
+  perfil: null,
+  expira_en: '2026-10-31T20:00:00Z',
+};
+
+async function renderizar(path: string, session: SessionResponse | null, fail?: unknown) {
+  state.session = session;
+  state.fail = fail ?? null;
+  const { container } = render(
+    <MemoryRouter initialEntries={[path]}>
+      <App />
+    </MemoryRouter>,
+  );
+  await new Promise((resolve) => setTimeout(resolve, 400));
+  return container;
+}
+
+describe('axe auth', () => {
+  it('login sin violaciones', async () => {
+    const container = await renderizar(
+      '/login',
+      null,
+      new ApiError({ code: 'not_authenticated', message: 'Sin sesión', status: 401 }),
     );
-    // Espera a que el transecto mock cargue antes del análisis.
-    await new Promise((r) => setTimeout(r, 400));
-    const results = await axe(container);
-    expect(results.violations).toEqual([]);
+    expect((await axe(container)).violations).toEqual([]);
+  }, 15000);
+
+  it('estación admin sin violaciones', async () => {
+    const container = await renderizar('/sage', ADMIN);
+    expect((await axe(container)).violations).toEqual([]);
+  }, 15000);
+
+  it('perfil no configurado sin violaciones', async () => {
+    const container = await renderizar('/perfil-no-configurado', SIN_PERFIL);
+    expect((await axe(container)).violations).toEqual([]);
   }, 15000);
 
   it('libro sin violaciones', async () => {
-    sessionStorage.setItem('teiba-role', 'user');
-    const { container } = render(
-      <MemoryRouter initialEntries={['/parques']}>
-        <App />
-      </MemoryRouter>,
-    );
-    await new Promise((r) => setTimeout(r, 400));
-    const results = await axe(container);
-    expect(results.violations).toEqual([]);
+    const container = await renderizar('/parques', USER);
+    expect((await axe(container)).violations).toEqual([]);
   }, 15000);
 });

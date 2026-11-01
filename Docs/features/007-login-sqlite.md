@@ -8,7 +8,7 @@ updated: 2026-10-31
 ---
 # Feature 007 — Login local con SQLite, roles y perfil de dominio
 
-> Backend implementado en `feat/auth-sqlite-backend`; el frontend se acopla luego.
+> Backend y frontend básico en `feat/auth-sqlite-backend`; el acabado visual queda para la rama UI.
 
 ## Objetivo
 Permitir login real con tres roles de acceso (`admin`, `operator`, `user`), sesión
@@ -17,7 +17,7 @@ por cookie, RBAC server-side y `perfil` de dominio leído de Mongo `usuarios`.
 ## Alcance
 | Incluye | Excluye |
 |---|---|
-| SQLite users/sessions v2, bcrypt, login/logout/me, cookie, RBAC, CSRF, rate limit, rol `operator`, perfil de dominio, tests y ADR | Registro, reset, 2FA, OAuth, JWT, multi-worker, estilos del frontend |
+| SQLite users/sessions v2, bcrypt, login/logout/me, cookie, RBAC, CSRF, rate limit, rol `operator`, perfil de dominio, AuthProvider/LoginView/guards/AccountMenu, tests y ADR | Registro, reset, 2FA, OAuth, JWT, multi-worker, estilos visuales nuevos |
 
 ## Criterios de aceptación
 | N.º | Criterio verificable | Comando |
@@ -30,12 +30,13 @@ por cookie, RBAC server-side y `perfil` de dominio leído de Mongo `usuarios`.
 | 6 | Sin secretos ni DB versionada | `git check-ignore -v backend/data/teiba_auth.db`; `git diff` |
 | 7 | Suite completa en verde | `cd backend && .venv\Scripts\python.exe -m pytest -q` |
 | 8 | Lint limpio | `cd backend && .venv\Scripts\python.exe -m ruff check .` |
+| 9 | Frontend compila, prueba y axe | `cd frontend && npm run typecheck && npm run lint && npm run test -- --run && npm run build` |
 
-## Pasos (backend)
+## Pasos
 1. Rol operator + migración SQLite v2 — `feat: añadir rol operador y perfil de dominio al login`
-2. ProfileRepository y perfil en login/me — `feat: añadir perfil de dominio a la sesión`
-3. Seed de operador y docs — `chore: sembrar la cuenta de operador`
-4. Tests de migración, perfil y RBAC — `test: cubrir operador y perfil de sesión`
+2. Perfil de dominio + tests backend — incluido en el paso 1
+3. Login, guards y AccountMenu — `feat: montar login y guards en el frontend`
+4. Tests frontend y axe — incluido en el paso 3
 
 ## Rollback
 Revertir los commits de la rama; borrar `backend/data/teiba_auth.db` (gitignored);
@@ -45,5 +46,5 @@ de dominio.
 ## Cierre
 - Fila en `Docs/features/INDEX.md`; el switch demo de 003 queda superado.
 - ADR 003; no hay cambio de esquema Mongo.
-- El frontend se acopla en una rama posterior (`feat/auth-ui-integración`),
-  consumiendo `{usuario, perfil, expira_en}`.
+- El frontend básico usa `{usuario, perfil, expira_en}` y cookie httpOnly; el
+  acabado visual lo hará la rama de UI.

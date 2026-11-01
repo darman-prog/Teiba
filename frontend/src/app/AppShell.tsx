@@ -1,14 +1,16 @@
 import type { ReactNode } from 'react';
 import { Link } from 'react-router-dom';
 import { Activity, FlaskConical } from 'lucide-react';
-import { useRole } from './RoleProvider';
-import { RoleSwitch } from './RoleSwitch';
+import { useAuth } from './AuthProvider';
+import { AccountMenu } from './AccountMenu';
 import { isMockEnabled } from '../api/client';
+import { homeForPerfil } from '../lib/navigation';
 
-// Station bar: solo marca Teiba y rol demo, sin ruido.
+// Station bar: marca, aviso de perfil y cuenta de la sesión.
 export function AppShell({ children }: { children: ReactNode }) {
-  const { role } = useRole();
+  const { status, usuario, perfil } = useAuth();
   const mock = isMockEnabled();
+  const home = usuario ? homeForPerfil(usuario, perfil) : '/login';
 
   return (
     <div className="flex min-h-dvh flex-col bg-mineral text-ink">
@@ -20,7 +22,7 @@ export function AppShell({ children }: { children: ReactNode }) {
       </a>
       <header className="sticky top-0 z-30 border-b border-border bg-surface/95 backdrop-blur">
         <div className="mx-auto flex max-w-6xl flex-wrap items-center gap-x-4 gap-y-2 px-4 py-2.5">
-          <Link to={role === 'admin' ? '/sage' : '/parques'} className="flex items-center gap-2.5">
+          <Link to={home} className="flex items-center gap-2.5">
             <span aria-hidden="true" className="grid size-8 place-items-center rounded-[6px] border border-moss bg-moss text-white">
               <Activity size={18} strokeWidth={1.5} />
             </span>
@@ -32,10 +34,15 @@ export function AppShell({ children }: { children: ReactNode }) {
           <div className="ml-auto flex flex-wrap items-center gap-2">
             {mock && (
               <span className="flex items-center gap-1 rounded-[4px] border border-signal bg-[#FDF6E7] px-2 py-1 text-[12px] font-semibold text-warn">
-                <FlaskConical size={14} strokeWidth={1.5} aria-hidden="true" /> Modo demo
+                <FlaskConical size={14} strokeWidth={1.5} aria-hidden="true" /> Datos demo
               </span>
             )}
-            <RoleSwitch />
+            {status === 'authenticated' && !perfil && (
+              <span className="rounded-[4px] border border-warn/40 bg-warn-soft px-2 py-1 text-[12px] font-semibold text-warn">
+                Perfil no configurado
+              </span>
+            )}
+            {status === 'authenticated' && <AccountMenu />}
           </div>
         </div>
       </header>
@@ -46,7 +53,7 @@ export function AppShell({ children }: { children: ReactNode }) {
         <div className="mx-auto flex max-w-6xl flex-wrap items-center gap-2 px-4 py-3 text-[12px] text-ink-2">
           <span className="font-display font-semibold uppercase tracking-[0.08em]">Teiba · Estación de campo</span>
           <span aria-hidden="true">—</span>
-          <span>Demo local sin autenticación · la key vive en el backend</span>
+          <span>Demo local con sesión · la key vive en el backend</span>
         </div>
       </footer>
     </div>

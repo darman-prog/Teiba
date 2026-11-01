@@ -1,14 +1,14 @@
 import { AppShell } from './AppShell';
-import { RoleProvider } from './RoleProvider';
+import { AuthProvider } from './AuthProvider';
 import { AppRoutes } from './routes';
 
-// Raíz de la SPA: proveedor de rol demo + caparazón + rutas.
+// Raíz de la SPA: sesión + caparazón + rutas.
 export default function App() {
   return (
-    <RoleProvider>
+    <AuthProvider>
       <AppShell>
         <AppRoutes />
       </AppShell>
-    </RoleProvider>
+    </AuthProvider>
   );
 }

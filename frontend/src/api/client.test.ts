@@ -65,4 +65,42 @@ describe('requestJson', () => {
     vi.mocked(fetch).mockRejectedValueOnce(new TypeError('down'));
     await expect(requestJson('/api/x', { timeoutMs: 1000 })).rejects.toMatchObject({ code: 'network' });
   });
+
+  it('envía credentials include y avisa con teiba:unauthorized en 401', async () => {
+    const listener = vi.fn();
+    window.addEventListener('teiba:unauthorized', listener);
+    try {
+      vi.mocked(fetch).mockResolvedValueOnce(
+        new Response(JSON.stringify({ code: 'not_authenticated', message: 'Sin sesión' }), {
+          status: 401,
+        }),
+      );
+      await expect(requestJson('/api/x', { timeoutMs: 1000 })).rejects.toMatchObject({
+        status: 401,
+      });
+      expect(listener).toHaveBeenCalledTimes(1);
+      const init = vi.mocked(fetch).mock.calls[0]?.[1] as RequestInit;
+      expect(init.credentials).toBe('include');
+    } finally {
+      window.removeEventListener('teiba:unauthorized', listener);
+    }
+  });
+
+  it('no emite teiba:unauthorized en el 401 del login', async () => {
+    const listener = vi.fn();
+    window.addEventListener('teiba:unauthorized', listener);
+    try {
+      vi.mocked(fetch).mockResolvedValueOnce(
+        new Response(JSON.stringify({ code: 'invalid_credentials', message: 'Mal' }), {
+          status: 401,
+        }),
+      );
+      await expect(
+        requestJson('/api/auth/login', { timeoutMs: 1000, method: 'POST' }),
+      ).rejects.toMatchObject({ code: 'invalid_credentials' });
+      expect(listener).not.toHaveBeenCalled();
+    } finally {
+      window.removeEventListener('teiba:unauthorized', listener);
+    }
+  });
 });

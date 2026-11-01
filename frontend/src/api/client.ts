@@ -1,10 +1,10 @@
 import { ApiError, parseErrorBody } from './errors';
 
-// Base de la API: variable de entorno con fallback local.
+// Base de la API: en desarrollo el proxy de Vite sirve /api en el mismo origen.
 export function apiBase(): string {
   const v = import.meta.env.VITE_API_URL as string | undefined;
   if (v && v.trim().length > 0) return v.replace(/\/$/, '');
-  return 'http://127.0.0.1:8000';
+  return '';
 }
 
 // Bandera de modo demo: fixtures idénticas al contrato, sin red.
@@ -29,6 +29,8 @@ export async function requestJson<T>(path: string, opts: RequestOpts & { method?
     const res = await fetch(`${apiBase()}${path}`, {
       method: opts.method ?? 'GET',
       headers,
+      // La sesión viaja en cookie httpOnly; el proxy same-origin la conserva.
+      credentials: 'include',
       body: opts.body !== undefined ? JSON.stringify(opts.body) : undefined,
       signal: ctrl.signal,
     });
@@ -40,6 +42,10 @@ export async function requestJson<T>(path: string, opts: RequestOpts & { method?
       json = null;
     }
     if (!res.ok) {
+      // Un 401 fuera del login invalida la sesión y avisa a AuthProvider.
+      if (res.status === 401 && path !== '/api/auth/login' && typeof window !== 'undefined') {
+        window.dispatchEvent(new Event('teiba:unauthorized'));
+      }
       const parsed = parseErrorBody(json);
       // 429 conserva Retry-After para el mensaje de espera.
       const retryAfter = res.status === 429 ? res.headers.get('Retry-After') : null;
