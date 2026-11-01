@@ -239,3 +239,20 @@ class MongoReadingRepository:
             row["_id"]: row["doc"]
             for row in self._db.lecturas.aggregate(pipeline)
         }
+
+
+class MongoProfileRepository:
+    """Lectura mínima del perfil de negocio para enriquecer la sesión."""
+
+    def __init__(self, db: Database):
+        self._db = db
+
+    def get_by_correo(self, correo: str) -> dict[str, Any] | None:
+        """Devuelve el perfil por correo normalizado; nunca expone PII extra."""
+        limpio = (correo or "").strip().lower()
+        if not limpio:
+            return None
+        return self._db.usuarios.find_one(
+            {"correo": limpio},
+            {"_id": 1, "nombre": 1, "correo": 1, "rol": 1},
+        )

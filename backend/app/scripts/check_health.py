@@ -28,7 +28,8 @@ def main() -> int:
         return 1
     if not body.get("auth", {}).get("ok"):
         print(
-            "ERROR: la base de identidad SQLite no responde. Ejecuta seed_auth y revisa AUTH_DB_PATH."
+            "ERROR: la base de identidad SQLite no responde. "
+            "Ejecuta seed_auth y revisa AUTH_DB_PATH."
         )
         return 1
     return 0

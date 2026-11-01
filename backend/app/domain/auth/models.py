@@ -17,6 +17,7 @@ class Rol(StrEnum):
     """Rol de acceso. Refleja la matriz de permisos, no los roles de dominio."""
 
     ADMIN = "admin"
+    OPERATOR = "operator"
     USER = "user"
 
 

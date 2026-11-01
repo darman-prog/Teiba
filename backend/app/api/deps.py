@@ -17,6 +17,7 @@ from app.infrastructure.llm import OpenCodeLLMClient
 from app.infrastructure.mongo_repositories import (
     MongoDeviceRepository,
     MongoParkRepository,
+    MongoProfileRepository,
     MongoReadingRepository,
 )
 from app.infrastructure.passwords import BcryptPasswordHasher
@@ -33,6 +34,11 @@ def get_device_repository() -> MongoDeviceRepository:
 
 def get_park_repository() -> MongoParkRepository:
     return MongoParkRepository(get_db())
+
+
+def get_profile_repository() -> MongoProfileRepository:
+    """Perfil de negocio para `/auth/login` y `/auth/me`."""
+    return MongoProfileRepository(get_db())
 
 
 def get_reading_repository() -> MongoReadingRepository:

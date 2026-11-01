@@ -154,3 +154,11 @@ def test_sensores_sin_sesion_401(client, _auth_env):
     response = client.get("/api/sensores?tipo=calidad_suelo")
     assert response.status_code == 401
     assert response.json()["code"] == "not_authenticated"
+
+
+def test_sensores_operator_403(client, _auth_env):
+    _override(client.app, FakeDevices([_device("SS-01")]), FakeReadings())
+    _login(client, "operador@teiba.local", "operator12345678")
+    response = client.get("/api/sensores?tipo=calidad_suelo")
+    assert response.status_code == 403
+    assert response.json()["code"] == "forbidden"

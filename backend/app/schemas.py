@@ -47,11 +47,21 @@ class LoginRequest(BaseModel):
 
 class AuthUser(BaseModel):
     correo: str
-    rol: Literal["admin", "user"]
+    rol: Literal["admin", "operator", "user"]
+
+
+class PerfilUsuario(BaseModel):
+    """Perfil de negocio de Mongo; auth solo lo lee y nunca expone PII extra."""
+
+    id: str
+    nombre: str
+    correo: str
+    rol: Literal["administrador", "operador_mantenimiento", "ciudadano"]
 
 
 class SessionResponse(BaseModel):
     usuario: AuthUser
+    perfil: PerfilUsuario | None = None
     expira_en: str
 
 

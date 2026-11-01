@@ -77,9 +77,9 @@ automáticamente.
 
 | Método | Ruta | Auth | Entrada | Éxito | Errores |
 |---|---|---|---|---|---|
-| `POST` | `/api/auth/login` | — | `{"correo","contrasena"}` | 200 + cookie | 401, 422, 429 |
+| `POST` | `/api/auth/login` | — | `{"correo","contrasena"}` | 200 + cookie + `perfil` | 401, 422, 429 |
 | `POST` | `/api/auth/logout` | cookie | — | 204 | 403 CSRF |
-| `GET` | `/api/auth/me` | cookie | — | 200 `{usuario,expira_en}` | 401 |
+| `GET` | `/api/auth/me` | cookie | — | 200 `{usuario,perfil,expira_en}` | 401 |
 | `GET` | `/api/health` | — | — | 200 `status,mongo,llm,auth,version` | 500 |
 | `GET` | `/api/parques` | sesión | — | 200 | 401 |
 | `GET` | `/api/parques/{codigo}` | sesión | `codigo` | 200 | 401, 404, 422, 503 |
@@ -101,6 +101,11 @@ Notas del contrato:
 - Autenticacion local (feature 007): la sesion via cookie `HttpOnly` `teiba_session`
   obtenida en `/api/auth/login`. No se usa `Authorization`. La `OPENCODE_API_KEY`
   vive en `backend/.env`.
+- Roles de acceso: `admin`, `operator`, `user`. Roles de dominio en `perfil.rol`:
+  `administrador`, `operador_mantenimiento`, `ciudadano`.
+- `perfil` puede ser `null` si el correo no existe en Mongo `usuarios` o Mongo no
+  responde; el login y `/me` siguen devolviendo 200. Solo expone `id`, `nombre`,
+  `correo` y `rol`.
 - Los errores usan `{code, message, details, traceId}`. `details` puede ser
   `null`, una lista (422) o un objeto (429). El campo `traceId` va en camelCase.
 - El `POST` exige `Origin` en la allowlist (CSRF fail-closed); Vite proxy lo envia solo.
@@ -131,9 +136,23 @@ Content-Type: application.json
 
 Respuesta 200:
 ```
-{"usuario":{"correo":"admin@teiba.local","rol":"admin"},"expira_en":"2026-10-30T22:00:00Z"}
+{
+  "usuario": {"correo": "admin@teiba.local", "rol": "admin"},
+  "perfil": {
+    "id": "<ObjectId de Mongo>",
+    "nombre": "Ana Administradora",
+    "correo": "admin@teiba.local",
+    "rol": "administrador"
+  },
+  "expira_en": "2026-10-30T22:00:00Z"
+}
 Set-Cookie: teiba_session=...; HttpOnly; SameSite=Lax; Path=/api; Max-Age=28800
 ```
+
+`perfil` puede ser `null`; no es un error de login. El seed de mantenimientos es
+el que crea los perfiles demo en Mongo. El login de operador usa
+`operador@teiba.local` y devuelve `usuario.rol="operator"` con
+`perfil.rol="operador_mantenimiento"`.
 
 ### 4.2 Health
 
@@ -385,7 +404,8 @@ Para probarlo:
 
 No ejecutes el agente en bucle: consume tokens, tarda y gasta el rate limit. El
 límite es en memoria y de un solo proceso; no es una protección de producción.
-No expongas esta API a Internet: no tiene autenticación.
+No expongas esta API a Internet: la autenticación es local, de un solo proceso
+y sin TLS. La demo vive en `127.0.0.1`.
 
 ## 6. Problemas comunes
 

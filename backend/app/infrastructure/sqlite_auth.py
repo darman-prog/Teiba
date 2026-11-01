@@ -47,35 +47,98 @@ class BaseAuth:
             conn.close()
 
     def asegurar_esquema(self) -> None:
-        """Crea las tablas si no existen. Idempotente vía user_version."""
+        """Crea el esquema v2 o migra desde v1; idempotente por user_version."""
         with self._conectar() as conn:
             version = conn.execute("PRAGMA user_version").fetchone()[0]
-            if version >= 1:
+            if version >= 2:
                 return
-            conn.executescript(
+            if version == 0:
+                self._crear_esquema_v2(conn)
+                return
+            if version == 1:
+                self._migrar_v1_a_v2(conn)
+                return
+            # Una versión futura no se toca: mejor fallar que corromper datos.
+            raise RuntimeError(f"Versión de esquema SQLite no soportada: {version}")
+
+    def _crear_esquema_v2(self, conn: sqlite3.Connection) -> None:
+        """Crea users/sessions en v2 para una base nueva."""
+        conn.executescript(
+            """
+            CREATE TABLE IF NOT EXISTS users (
+                id            INTEGER PRIMARY KEY,
+                email         TEXT    NOT NULL COLLATE NOCASE,
+                password_hash TEXT    NOT NULL,
+                role          TEXT    NOT NULL CHECK (role IN ('admin', 'operator', 'user')),
+                is_active     INTEGER NOT NULL DEFAULT 1 CHECK (is_active IN (0, 1)),
+                created_at    INTEGER NOT NULL,
+                updated_at    INTEGER NOT NULL
+            );
+            CREATE UNIQUE INDEX IF NOT EXISTS ux_users_email ON users (email);
+
+            CREATE TABLE IF NOT EXISTS sessions (
+                token_hash TEXT    PRIMARY KEY,
+                user_id    INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+                created_at INTEGER NOT NULL,
+                expires_at INTEGER NOT NULL
+            );
+            CREATE INDEX IF NOT EXISTS ix_sessions_user_id    ON sessions (user_id);
+            CREATE INDEX IF NOT EXISTS ix_sessions_expires_at ON sessions (expires_at);
+            """
+        )
+        conn.execute("PRAGMA user_version = 2")
+
+    def _migrar_v1_a_v2(self, conn: sqlite3.Connection) -> None:
+        """Reconstruye users para admitir operator sin perder ids ni sesiones."""
+        # Foreign keys debe apagarse fuera de la transacción; dentro no tiene efecto.
+        conn.execute("PRAGMA foreign_keys = OFF")
+        try:
+            conn.execute("BEGIN IMMEDIATE")
+            conn.execute(
                 """
-                CREATE TABLE IF NOT EXISTS users (
+                CREATE TABLE users_v2 (
                     id            INTEGER PRIMARY KEY,
                     email         TEXT    NOT NULL COLLATE NOCASE,
                     password_hash TEXT    NOT NULL,
-                    role          TEXT    NOT NULL CHECK (role IN ('admin', 'user')),
+                    role          TEXT    NOT NULL CHECK (role IN ('admin', 'operator', 'user')),
                     is_active     INTEGER NOT NULL DEFAULT 1 CHECK (is_active IN (0, 1)),
                     created_at    INTEGER NOT NULL,
                     updated_at    INTEGER NOT NULL
-                );
-                CREATE UNIQUE INDEX IF NOT EXISTS ux_users_email ON users (email);
-
-                CREATE TABLE IF NOT EXISTS sessions (
-                    token_hash TEXT    PRIMARY KEY,
-                    user_id    INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-                    created_at INTEGER NOT NULL,
-                    expires_at INTEGER NOT NULL
-                );
-                CREATE INDEX IF NOT EXISTS ix_sessions_user_id    ON sessions (user_id);
-                CREATE INDEX IF NOT EXISTS ix_sessions_expires_at ON sessions (expires_at);
+                )
                 """
             )
-            conn.execute("PRAGMA user_version = 1")
+            conn.execute(
+                """
+                INSERT INTO users_v2 (
+                    id, email, password_hash, role, is_active, created_at, updated_at
+                )
+                SELECT id, email, password_hash, role, is_active, created_at, updated_at
+                FROM users
+                """
+            )
+            conn.execute("DROP TABLE users")
+            conn.execute("ALTER TABLE users_v2 RENAME TO users")
+            conn.execute("CREATE UNIQUE INDEX ux_users_email ON users(email)")
+
+            # Se valida antes del COMMIT: con huérfanos se revierte la transacción.
+            problemas = conn.execute("PRAGMA foreign_key_check").fetchall()
+            if problemas:
+                conn.execute("ROLLBACK")
+                raise RuntimeError(
+                    "La migración SQLite v2 dejó referencias huérfanas; se revirtió."
+                )
+
+            conn.execute("PRAGMA user_version = 2")
+            conn.execute("COMMIT")
+        except Exception:
+            # Si el fallo ocurrió antes del COMMIT, se revierte lo que esté abierto.
+            try:
+                conn.execute("ROLLBACK")
+            except sqlite3.Error:
+                pass
+            raise
+        finally:
+            conn.execute("PRAGMA foreign_keys = ON")
 
     def limpiar_expiradas(self, ahora: datetime) -> int:
         with self._conectar() as conn:

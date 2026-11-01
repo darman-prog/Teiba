@@ -1,9 +1,23 @@
 """El endpoint del agente responde 429 al superar el límite por minuto."""
+from pathlib import Path
+
 from fastapi.testclient import TestClient
 
-from app.api.deps import get_agent_runner
+from app.api.deps import get_agent_runner, get_profile_repository
 
 ORIGIN = "http://testserver"
+
+
+class FakeProfiles:
+    """Evita que el test aislado dependa de Mongo para resolver el perfil."""
+
+    def get_by_correo(self, correo):
+        return {
+            "_id": "admin-mongo",
+            "nombre": "Ana Administradora",
+            "correo": correo,
+            "rol": "administrador",
+        }
 
 
 class FakeRunner:
@@ -61,21 +75,20 @@ def test_rate_limit_por_minute(monkeypatch, tmp_path):
     # Test aislado creando la app ya con el limite bajo, igual que el original.
     monkeypatch.setenv("RATE_LIMIT_PER_MINUTE", "2")
     monkeypatch.setenv("RATE_LIMIT_CONCURRENT", "1")
-    import os
-    from app.config import get_settings
-    get_settings.cache_clear()
     from app import db as db_module
-    monkeypatch.setattr(db_module, "ping", lambda: True)
+    from app.config import get_settings
+    from app.infrastructure.passwords import BcryptPasswordHasher
+    from app.infrastructure.sqlite_auth import BaseAuth
     from app.main import create_app
+
+    get_settings.cache_clear()
+    monkeypatch.setattr(db_module, "ping", lambda: True)
     app = create_app()
     app.dependency_overrides[get_agent_runner] = lambda: FakeRunner()
+    app.dependency_overrides[get_profile_repository] = lambda: FakeProfiles()
 
     # Sembrar usuarios directamente en la BD temporal de la app.
-    from pathlib import Path
     db_path = Path(get_settings().auth_db_path)
-    from app.infrastructure.sqlite_auth import BaseAuth
-    from datetime import UTC, datetime
-    from app.infrastructure.passwords import BcryptPasswordHasher
     base = BaseAuth(str(db_path))
     base.asegurar_esquema()
     hasher = BcryptPasswordHasher(4)
@@ -90,9 +103,21 @@ def test_rate_limit_por_minute(monkeypatch, tmp_path):
         with TestClient(app) as client:
             _login_admin(client)
             body = {"pregunta": "¿Cómo está el suelo?"}
-            assert client.post("/api/agente/consulta", json=body, headers={"Origin": ORIGIN}).status_code == 200
-            assert client.post("/api/agente/consulta", json=body, headers={"Origin": ORIGIN}).status_code == 200
-            response = client.post("/api/agente/consulta", json=body, headers={"Origin": ORIGIN})
+            assert (
+                client.post(
+                    "/api/agente/consulta", json=body, headers={"Origin": ORIGIN}
+                ).status_code
+                == 200
+            )
+            assert (
+                client.post(
+                    "/api/agente/consulta", json=body, headers={"Origin": ORIGIN}
+                ).status_code
+                == 200
+            )
+            response = client.post(
+                "/api/agente/consulta", json=body, headers={"Origin": ORIGIN}
+            )
     finally:
         get_settings.cache_clear()
 

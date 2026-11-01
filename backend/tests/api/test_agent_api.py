@@ -77,7 +77,11 @@ def test_consulta_sin_sesion_401(client, _auth_env):
 def test_consulta_pregunta_corta(client, _auth_env):
     client.app.dependency_overrides[get_agent_runner] = lambda: FakeRunner()
     _login_admin(client)
-    response = client.post("/api/agente/consulta", json={"pregunta": "ab"}, headers={"Origin": ORIGIN})
+    response = client.post(
+        "/api/agente/consulta",
+        json={"pregunta": "ab"},
+        headers={"Origin": ORIGIN},
+    )
 
     assert response.status_code == 422
     body = response.json()
@@ -114,3 +118,21 @@ def test_sin_key_responde_503(client, _auth_env, monkeypatch):
     assert body["code"] == "llm_not_configured"
     assert body["traceId"]
     assert "OPENCODE_API_KEY" in body["message"]
+
+
+def test_consulta_operator_403(client, _auth_env):
+    client.app.dependency_overrides[get_agent_runner] = lambda: FakeRunner()
+    resp_login = client.post(
+        "/api/auth/login",
+        json={"correo": "operador@teiba.local", "contrasena": "operator12345678"},
+        headers={"Origin": ORIGIN},
+    )
+    assert resp_login.status_code == 200
+    client.cookies.set("teiba_session", resp_login.cookies.get("teiba_session"))
+    response = client.post(
+        "/api/agente/consulta",
+        json={"pregunta": "¿Cómo está el suelo?"},
+        headers={"Origin": ORIGIN},
+    )
+    assert response.status_code == 403
+    assert response.json()["code"] == "forbidden"

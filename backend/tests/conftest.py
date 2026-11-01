@@ -12,7 +12,6 @@ from app import db as db_module
 from app.config import get_settings
 from app.infrastructure.passwords import BcryptPasswordHasher
 from app.infrastructure.sqlite_auth import BaseAuth
-from app.infrastructure.sqlite_auth_repositories import SqliteUserRepository
 
 
 @pytest.fixture(autouse=True)
@@ -36,9 +35,9 @@ def _sembrar_usuarios(db_path: Path) -> None:
     base = BaseAuth(str(db_path))
     base.asegurar_esquema()
     hasher = BcryptPasswordHasher(4)
-    repo = SqliteUserRepository(base)
     for correo, rol, pwd in [
         ("admin@teiba.local", "admin", "admin12345678"),
+        ("operador@teiba.local", "operator", "operator12345678"),
         ("user@teiba.local", "user", "user12345678"),
     ]:
         hashh = hasher.hash(pwd)
@@ -46,18 +45,51 @@ def _sembrar_usuarios(db_path: Path) -> None:
             existente = conn.execute("SELECT id FROM users WHERE email = ?", (correo,)).fetchone()
             if existente is None:
                 conn.execute(
-                    "INSERT INTO users (email, password_hash, role, is_active, created_at, updated_at) "
+                    "INSERT INTO users (email, password_hash, role, is_active, "
+                    "created_at, updated_at) "
                     "VALUES (?, ?, ?, 1, strftime('%s','now'), strftime('%s','now'))",
                     (correo, hashh, rol),
                 )
+
+
+class FakeProfileRepository:
+    """Perfiles de dominio ficticios; evita Mongo en la suite de auth."""
+
+    PERFILES = {
+        "admin@teiba.local": {
+            "_id": "admin-mongo",
+            "nombre": "Ana Administradora",
+            "correo": "admin@teiba.local",
+            "rol": "administrador",
+        },
+        "operador@teiba.local": {
+            "_id": "operador-mongo",
+            "nombre": "Óscar Operador",
+            "correo": "operador@teiba.local",
+            "rol": "operador_mantenimiento",
+        },
+        "user@teiba.local": {
+            "_id": "user-mongo",
+            "nombre": "Carla Ciudadana",
+            "correo": "user@teiba.local",
+            "rol": "ciudadano",
+        },
+    }
+
+    def get_by_correo(self, correo: str):
+        return self.PERFILES.get((correo or "").strip().lower())
 
 
 @pytest.fixture()
 def app(monkeypatch, _auth_env):
     """App de prueba sin Mongo real y con SQLite auth temporal."""
     monkeypatch.setattr(db_module, "ping", lambda: True)
+    from app.api.deps import get_profile_repository
     from app.main import create_app
-    return create_app()
+
+    app = create_app()
+    app.dependency_overrides[get_profile_repository] = lambda: FakeProfileRepository()
+    return app
 
 
 @pytest.fixture()
@@ -91,4 +123,17 @@ def authed_user(client, _auth_env):
     )
     if resp.status_code != 200:
         pytest.fail(f"login user de test fallo: {resp.status_code} {resp.text}")
+    return client
+
+
+@pytest.fixture()
+def authed_operator(client, _auth_env):
+    _sembrar_usuarios(_auth_env)
+    resp = client.post(
+        "/api/auth/login",
+        json={"correo": "operador@teiba.local", "contrasena": "operator12345678"},
+        headers={"Origin": "http://testserver"},
+    )
+    if resp.status_code != 200:
+        pytest.fail(f"login operator de test fallo: {resp.status_code} {resp.text}")
     return client

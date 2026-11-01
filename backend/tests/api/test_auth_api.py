@@ -33,7 +33,8 @@ def test_login_password_mala_401_generico(client, _auth_env):
     assert resp.status_code == 401
     assert resp.json()["code"] == "invalid_credentials"
     # No debe revelar si el correo existe.
-    assert "correo" not in resp.json()["message"].lower() or "contraseña" in resp.json()["message"].lower()
+    mensaje = resp.json()["message"].lower()
+    assert "correo" not in mensaje or "contraseña" in mensaje
 
 
 def test_login_correo_inexistente_401_igual_que_mala(client, _auth_env):
@@ -142,3 +143,89 @@ def test_agente_user_403(client, _auth_env):
     )
     assert resp.status_code == 403
     assert resp.json()["code"] == "forbidden"
+
+
+class EmptyProfiles:
+    def get_by_correo(self, correo):
+        return None
+
+
+class InvalidProfiles:
+    def get_by_correo(self, correo):
+        return {"_id": "x", "nombre": "X", "correo": correo, "rol": "otro"}
+
+
+class FailingProfiles:
+    def get_by_correo(self, correo):
+        from pymongo.errors import PyMongoError
+
+        raise PyMongoError("Mongo caído")
+
+
+def _override_profiles(client, repo) -> None:
+    from app.api.deps import get_profile_repository
+
+    client.app.dependency_overrides[get_profile_repository] = lambda: repo
+
+
+def test_login_admin_trae_perfil_dominio(client, _auth_env):
+    resp = _login(client, "admin@teiba.local", "admin12345678")
+    assert resp.status_code == 200
+    perfil = resp.json()["perfil"]
+    assert perfil["id"] == "admin-mongo"
+    assert perfil["rol"] == "administrador"
+    assert perfil["correo"] == "admin@teiba.local"
+
+
+def test_login_operator_trae_perfil_dominio(client, _auth_env):
+    resp = _login(client, "operador@teiba.local", "operator12345678")
+    assert resp.status_code == 200
+    body = resp.json()
+    assert body["usuario"]["rol"] == "operator"
+    assert body["perfil"]["rol"] == "operador_mantenimiento"
+    assert isinstance(body["perfil"]["id"], str)
+
+
+def test_login_user_trae_perfil_ciudadano(client, _auth_env):
+    resp = _login(client, "user@teiba.local", "user12345678")
+    assert resp.status_code == 200
+    assert resp.json()["usuario"]["rol"] == "user"
+    assert resp.json()["perfil"]["rol"] == "ciudadano"
+
+
+def test_me_devuelve_perfil(client, _auth_env):
+    resp_login = _login(client, "operador@teiba.local", "operator12345678")
+    client.cookies.set("teiba_session", resp_login.cookies.get("teiba_session"))
+    resp = client.get("/api/auth/me")
+    assert resp.status_code == 200
+    assert resp.json()["perfil"]["rol"] == "operador_mantenimiento"
+
+
+def test_perfil_ausente_200_null(client, _auth_env):
+    _override_profiles(client, EmptyProfiles())
+    resp = _login(client, "admin@teiba.local", "admin12345678")
+    assert resp.status_code == 200
+    assert resp.json()["perfil"] is None
+
+
+def test_perfil_rol_invalido_200_null(client, _auth_env):
+    _override_profiles(client, InvalidProfiles())
+    resp = _login(client, "admin@teiba.local", "admin12345678")
+    assert resp.status_code == 200
+    assert resp.json()["perfil"] is None
+
+
+def test_mongo_caido_login_200_null(client, _auth_env):
+    _override_profiles(client, FailingProfiles())
+    resp = _login(client, "admin@teiba.local", "admin12345678")
+    assert resp.status_code == 200
+    assert resp.json()["perfil"] is None
+
+
+def test_perfil_no_expone_pii(client, _auth_env):
+    resp = _login(client, "admin@teiba.local", "admin12345678")
+    perfil = resp.json()["perfil"]
+    assert set(perfil) == {"id", "nombre", "correo", "rol"}
+    texto = resp.text.lower()
+    assert "telefono" not in texto
+    assert "password_hash" not in texto

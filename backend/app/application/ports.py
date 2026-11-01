@@ -1,9 +1,9 @@
 """Puertos que la capa de aplicación usa; infraestructura los implementa."""
 from dataclasses import dataclass, field
-from datetime import datetime, timedelta
+from datetime import datetime
 from typing import Any, Protocol
 
-from app.domain.auth.models import Credenciales, Rol, Sesion, Usuario
+from app.domain.auth.models import Credenciales, Sesion, Usuario
 
 
 class DeviceRepository(Protocol):
@@ -35,6 +35,12 @@ class ParkRepository(Protocol):
     def list_parques(self) -> list[dict[str, Any]]: ...
 
     def get_parque(self, codigo: str) -> dict[str, Any] | None: ...
+
+
+class ProfileRepository(Protocol):
+    """Perfil de negocio de Mongo; auth lo resuelve por correo."""
+
+    def get_by_correo(self, correo: str) -> dict[str, Any] | None: ...
 
 
 class ReadingRepository(Protocol):

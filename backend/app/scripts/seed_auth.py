@@ -24,12 +24,17 @@ def main() -> int:
     cuentas = [
         (
             os.getenv("AUTH_ADMIN_EMAIL", "admin@teiba.local"),
-            os.getenv("AUTH_ADMIN_PASSWORD", ""),
+            "AUTH_ADMIN_PASSWORD",
             "admin",
         ),
         (
+            os.getenv("AUTH_OPERATOR_EMAIL", "operador@teiba.local"),
+            "AUTH_OPERATOR_PASSWORD",
+            "operator",
+        ),
+        (
             os.getenv("AUTH_USER_EMAIL", "user@teiba.local"),
-            os.getenv("AUTH_USER_PASSWORD", ""),
+            "AUTH_USER_PASSWORD",
             "user",
         ),
     ]
@@ -66,7 +71,8 @@ def main() -> int:
                 )
             else:
                 conn.execute(
-                    "UPDATE users SET password_hash=?, role=?, is_active=1, updated_at=? WHERE id=?",
+                    "UPDATE users SET password_hash=?, role=?, is_active=1, "
+                    "updated_at=? WHERE id=?",
                     (hash_nuevo, rol, int(ahora.timestamp()), existente["id"]),
                 )
             # Rotar contraseña revoca todas las sesiones del usuario.

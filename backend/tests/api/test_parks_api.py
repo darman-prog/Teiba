@@ -133,3 +133,17 @@ def test_parques_sin_sesion_401(client, _auth_env):
     response = client.get("/api/parques")
     assert response.status_code == 401
     assert response.json()["code"] == "not_authenticated"
+
+
+def test_parques_operator_200(client, _auth_env):
+    _override(client.app, FakeParks())
+    resp_login = client.post(
+        "/api/auth/login",
+        json={"correo": "operador@teiba.local", "contrasena": "operator12345678"},
+        headers={"Origin": ORIGIN},
+    )
+    assert resp_login.status_code == 200
+    client.cookies.set("teiba_session", resp_login.cookies.get("teiba_session"))
+    response = client.get("/api/parques")
+    assert response.status_code == 200
+    assert response.json()["total"] == 1
