@@ -32,9 +32,10 @@ MongoDB → FastAPI → LLM → FastAPI.
 ## Operating Context
 
 Demo local académica (Bases de Datos II, UNAB): Vite en `:5173`, FastAPI en
-`:8000`, MongoDB en `:27017`, todo en `127.0.0.1`. Sin autenticación, sin
-tráfico real, sin exposición a LAN. La key del LLM vive solo en
-`backend/.env`. Flujo de la demo en `CONTEXT.md` §3; contrato HTTP en §7.
+`:8000`, MongoDB en `:27017`, todo en `127.0.0.1`. Auth local por cookie
+(ADR 003), sin registro público, sin tráfico real y sin exposición a LAN. La
+key del LLM vive solo en `backend/.env`. Flujo de la demo en `CONTEXT.md` §3;
+contrato HTTP en §7.
 
 ## Capabilities and Constraints
 

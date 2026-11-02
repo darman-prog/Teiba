@@ -79,7 +79,7 @@ respuesta trazable.
 
 - No es un sistema en producción ni tiene tráfico real.
 - No usa Neo4j, base de grafos, embeddings ni búsqueda vectorial.
-- No tiene autenticación ni está pensado para exponerse a Internet.
+- Usa autenticación local por cookie; no está pensado para exponerse a Internet.
 - No incluye CRUD de parques, mapas, gráficas históricas ni actuadores físicos.
 
 ## 2. Alcance, no objetivos y decisiones
@@ -97,7 +97,7 @@ respuesta trazable.
 ### Excluye
 
 - Neo4j, base de grafos, embeddings y RAG vectorial.
-- Autenticación, autorización, multiusuario y despliegue público.
+- Registro, reset de contraseña, 2FA, OAuth y despliegue público.
 - CRUD de parques, sectores, inventario o usuarios; el panel de mantenimientos usa lectura de incidentes e inventario y un CRUD acotado de tareas.
 - Mapas, gráficas, reportes descargables y acciones físicas.
 - Edición del documento Word de la entrega.
@@ -112,7 +112,7 @@ respuesta trazable.
 | React + Vite + TypeScript | Componentes modernos sin la ceremonia de Angular |
 | Tailwind | Tokens y utilidades para una UI propia |
 | DeepSeek como modelo principal | Costo y disponibilidad; LongCat 2.0 como respaldo |
-| Sin autenticación | Demo local en `127.0.0.1`; no se expone a LAN |
+| Auth local SQLite + cookie | ADR 003; roles `admin`/`operator`/`user`; bind `127.0.0.1` |
 | `teiba_db` | Nombre usado por los scripts y el ADR 001 |
 
 ## 3. Usuarios y flujos de la demo
@@ -451,7 +451,10 @@ campos usan `snake_case`, salvo `traceId` en el contrato de errores.
 
 | Método | Ruta | Entrada | Éxito |
 |---|---|---|---|
-| `GET` | `/api/health` | — | 200 con `status`, `mongo`, `llm`, `version` |
+| `POST` | `/api/auth/login` | `{ "correo": "...", "contrasena": "..." }` | 200 + cookie + `perfil` |
+| `POST` | `/api/auth/logout` | cookie | 204 |
+| `GET` | `/api/auth/me` | cookie | 200 con `usuario`, `perfil`, `expira_en` |
+| `GET` | `/api/health` | — | 200 con `status`, `mongo`, `llm`, `auth`, `version` |
 | `GET` | `/api/sensores` | `tipo`, `limite` | 200 con `items[]` y `total` |
 | `POST` | `/api/agente/consulta` | `{ "pregunta": "..." }` | 200 con `respuesta`, `trazas[]`, `meta` |
 | `GET` | `/docs` | — | Swagger UI |
