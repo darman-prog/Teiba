@@ -1,7 +1,16 @@
 """Contrato del login/logout/me, cookies y permisos."""
 from fastapi.testclient import TestClient
 
+from app.api.deps import get_agent_runner
+
 ORIGIN = "http://testserver"
+
+
+class RunnerNoLlamado:
+    """El RBAC debe cortar antes de tocar el agente, aun sin API key."""
+
+    def consultar(self, *args, **kwargs):
+        raise AssertionError("El agente no debe ejecutarse para un user.")
 
 
 def _login(client: TestClient, correo: str, contrasena: str):
@@ -133,6 +142,7 @@ def test_parques_anonimo_401(client, _auth_env):
 
 
 def test_agente_user_403(client, _auth_env):
+    client.app.dependency_overrides[get_agent_runner] = lambda: RunnerNoLlamado()
     resp_login = _login(client, "user@teiba.local", "user12345678")
     assert resp_login.status_code == 200
     client.cookies.set("teiba_session", resp_login.cookies.get("teiba_session"))
