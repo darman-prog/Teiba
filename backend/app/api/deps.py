@@ -4,18 +4,25 @@ from functools import lru_cache
 from typing import Annotated
 
 from fastapi import Depends, Request
+from pymongo.errors import PyMongoError
 
 from app.agent.loop import AgentRunner
 from app.agent.tools import AgentTools
+from app.api.errors import ApiError
 from app.application.auth.service import AuthService
 from app.application.errors import AgentError
+from app.application.maintenance import MaintenanceService
 from app.config import Settings, get_settings
 from app.db import get_db
 from app.domain.auth.models import Usuario
+from app.domain.profiles import Actor, RolDominio
 from app.infrastructure.clock import SystemClock
 from app.infrastructure.llm import OpenCodeLLMClient
 from app.infrastructure.mongo_repositories import (
     MongoDeviceRepository,
+    MongoIncidentRepository,
+    MongoInventoryRepository,
+    MongoMaintenanceRepository,
     MongoParkRepository,
     MongoProfileRepository,
     MongoReadingRepository,
@@ -43,6 +50,29 @@ def get_profile_repository() -> MongoProfileRepository:
 
 def get_reading_repository() -> MongoReadingRepository:
     return MongoReadingRepository(get_db())
+
+
+def get_maintenance_repository() -> MongoMaintenanceRepository:
+    return MongoMaintenanceRepository(get_db())
+
+
+def get_incident_repository() -> MongoIncidentRepository:
+    return MongoIncidentRepository(get_db())
+
+
+def get_inventory_repository() -> MongoInventoryRepository:
+    return MongoInventoryRepository(get_db())
+
+
+def get_maintenance_service(
+    tareas: Annotated[MongoMaintenanceRepository, Depends(get_maintenance_repository)],
+    perfiles: Annotated[MongoProfileRepository, Depends(get_profile_repository)],
+    incidentes: Annotated[MongoIncidentRepository, Depends(get_incident_repository)],
+    inventario: Annotated[MongoInventoryRepository, Depends(get_inventory_repository)],
+    parques: Annotated[MongoParkRepository, Depends(get_park_repository)],
+) -> MaintenanceService:
+    """Servicio de mantenimientos con repositorios y reloj del proceso."""
+    return MaintenanceService(tareas, perfiles, incidentes, inventario, parques, SystemClock())
 
 
 @lru_cache
@@ -105,3 +135,60 @@ async def require_admin(
     if usuario.rol != "admin":
         raise AuthError(403, "forbidden", "No tienes permisos para este recurso.")
     return usuario
+
+
+# --- Identidad de negocio para mantenimientos ---
+
+async def get_maintenance_actor(
+    usuario: Annotated[Usuario, Depends(require_user)],
+    perfiles: Annotated[MongoProfileRepository, Depends(get_profile_repository)],
+) -> Actor:
+    """Une la sesión SQLite con el perfil Mongo y valida la combinación de roles."""
+    try:
+        perfil = perfiles.get_by_correo(usuario.correo)
+    except PyMongoError as exc:
+        raise ApiError(
+            503,
+            "db_unavailable",
+            "La base de datos no está disponible.",
+        ) from exc
+
+    if not perfil:
+        raise ApiError(
+            403,
+            "profile_missing",
+            "Tu sesión no tiene un perfil de dominio configurado.",
+        )
+
+    try:
+        rol = RolDominio(perfil.get("rol"))
+    except (TypeError, ValueError) as exc:
+        raise ApiError(403, "profile_missing", "Tu perfil de dominio no es válido.") from exc
+
+    acceso = usuario.rol.value if hasattr(usuario.rol, "value") else str(usuario.rol)
+    if acceso == "admin" and rol in {
+        RolDominio.ADMINISTRADOR,
+        RolDominio.OPERADOR_MANTENIMIENTO,
+    }:
+        # El acceso admin manda en la estación; el perfil solo aporta identidad.
+        efectivo = RolDominio.ADMINISTRADOR
+    elif acceso == "operator" and rol == RolDominio.OPERADOR_MANTENIMIENTO:
+        efectivo = RolDominio.OPERADOR_MANTENIMIENTO
+    else:
+        raise ApiError(403, "forbidden", "Tu rol de acceso no permite mantenimientos.")
+
+    return Actor(
+        perfil_id=str(perfil["_id"]),
+        correo=perfil.get("correo", usuario.correo),
+        rol=efectivo,
+    )
+
+
+async def get_admin_actor(
+    usuario: Annotated[Usuario, Depends(require_user)],
+    actor: Annotated[Actor, Depends(get_maintenance_actor)],
+) -> Actor:
+    """Actor de mantenimientos con acceso admin explícito."""
+    if usuario.rol != "admin":
+        raise ApiError(403, "forbidden", "Solo el administrador puede hacer esta acción.")
+    return actor

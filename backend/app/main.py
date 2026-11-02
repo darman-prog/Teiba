@@ -15,7 +15,11 @@ from app.api.agent import router as agent_router
 from app.api.auth import router as auth_router
 from app.api.errors import register_exception_handlers
 from app.api.health import router as health_router
+from app.api.incidents import router as incidents_router
+from app.api.inventory import router as inventory_router
+from app.api.maintenance import router as maintenance_router
 from app.api.middleware import RateLimitMiddleware, TraceIdMiddleware
+from app.api.operators import router as operators_router
 from app.api.parks import router as parks_router
 from app.api.security import _RateLimitLogin
 from app.api.sensors import router as sensors_router
@@ -75,6 +79,10 @@ def create_app() -> FastAPI:
     app.include_router(agent_router, prefix="/api")
     app.include_router(sensors_router, prefix="/api")
     app.include_router(parks_router, prefix="/api")
+    app.include_router(maintenance_router, prefix="/api")
+    app.include_router(incidents_router, prefix="/api")
+    app.include_router(inventory_router, prefix="/api")
+    app.include_router(operators_router, prefix="/api")
     return app
 
 

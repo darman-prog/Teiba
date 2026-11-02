@@ -36,6 +36,8 @@ class ParkRepository(Protocol):
 
     def get_parque(self, codigo: str) -> dict[str, Any] | None: ...
 
+    def get_parque_id(self, codigo: str) -> Any | None: ...
+
 
 class ProfileRepository(Protocol):
     """Perfiles de negocio en Mongo, enlazados por correo con la sesión."""

@@ -2,6 +2,7 @@
 
 La API usa `snake_case`; los tipos del frontend espejan estos nombres.
 """
+from datetime import datetime
 from typing import Any, Literal
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator
@@ -161,4 +162,140 @@ class ParqueDetalle(BaseModel):
 
 class ParqueListResponse(BaseModel):
     items: list[ParqueResumen]
+    total: int
+
+
+# --- Mantenimientos, incidentes e inventario ---
+
+class MantenimientoParque(BaseModel):
+    id: str
+    codigo: str | None = None
+    nombre: str
+
+
+class MantenimientoResponsable(BaseModel):
+    id: str
+    nombre: str
+    rol: str | None = None
+
+
+class MantenimientoIncidente(BaseModel):
+    id: str
+    tipo: str | None = None
+    descripcion: str | None = None
+    prioridad: str | None = None
+    estado: str | None = None
+
+
+class MantenimientoElemento(BaseModel):
+    id: str
+    tipo_elemento: str | None = None
+    cantidad: int | None = None
+    estado: str | None = None
+
+
+class MantenimientoItem(BaseModel):
+    id: str
+    tipo: Literal["preventivo", "correctivo"]
+    descripcion: str
+    prioridad: Literal["alta", "media", "baja"]
+    estado: Literal["pendiente", "en_proceso", "finalizado"]
+    fecha_programada: str | None = None
+    fecha_ejecucion: str | None = None
+    fecha_reapertura: str | None = None
+    nota_cierre: str | None = None
+    nota_reapertura: str | None = None
+    costo_estimado: float | None = None
+    vencida: bool = False
+    parque: MantenimientoParque | None = None
+    responsable: MantenimientoResponsable | None = None
+    incidente: MantenimientoIncidente | None = None
+    elemento: MantenimientoElemento | None = None
+
+
+class MantenimientoListResponse(BaseModel):
+    items: list[MantenimientoItem]
+    total: int
+
+
+class MantenimientoCreateRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    tipo: Literal["preventivo", "correctivo"]
+    descripcion: str = Field(min_length=1, max_length=250)
+    fecha_programada: datetime
+    prioridad: Literal["alta", "media", "baja"] = "media"
+    parque_codigo: str = Field(min_length=1, max_length=20)
+    responsable_id: str = Field(min_length=1, max_length=40)
+    elemento_id: str | None = Field(default=None, max_length=40)
+    incidente_id: str | None = Field(default=None, max_length=40)
+    costo_estimado: float | None = Field(default=None, ge=0)
+
+
+class MantenimientoEstadoRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    estado: Literal["en_proceso", "finalizado"]
+    nota: str | None = Field(default=None, max_length=300)
+
+
+class MantenimientoReasignarRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    responsable_id: str = Field(min_length=1, max_length=40)
+
+
+class OperadorItem(BaseModel):
+    id: str
+    nombre: str
+
+
+class OperadorListResponse(BaseModel):
+    items: list[OperadorItem]
+    total: int
+
+
+class IncidenteReportante(BaseModel):
+    id: str
+    nombre: str
+
+
+class IncidenteItem(BaseModel):
+    id: str
+    tipo: str | None = None
+    descripcion: str | None = None
+    fecha_hora: str | None = None
+    estado: Literal["reportado", "en_revision", "en_proceso", "resuelto"]
+    prioridad: str | None = None
+    parque: MantenimientoParque | None = None
+    reportado_por: IncidenteReportante | None = None
+
+
+class IncidenteListResponse(BaseModel):
+    items: list[IncidenteItem]
+    total: int
+
+
+class IncidenteEstadoRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    estado: Literal["reportado", "en_revision", "en_proceso", "resuelto"]
+
+
+class ElementoSector(BaseModel):
+    id: str
+    codigo: str | None = None
+    nombre: str | None = None
+
+
+class ElementoItem(BaseModel):
+    id: str
+    tipo_elemento: str | None = None
+    cantidad: int | None = None
+    estado: str | None = None
+    sector: ElementoSector | None = None
+
+
+class ElementoListResponse(BaseModel):
+    items: list[ElementoItem]
     total: int

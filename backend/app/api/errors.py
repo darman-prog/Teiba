@@ -12,6 +12,13 @@ from app.api.cookies import limpiar_cookie_sesion
 from app.application.auth.errors import AuthError
 from app.application.errors import AgentError
 from app.config import get_settings
+from app.domain.incidents import TransicionIncidenteInvalida
+from app.domain.maintenance import (
+    ErrorMantenimiento,
+    NotaRequerida,
+    PermisoDenegado,
+    TransicionInvalida,
+)
 
 logger = logging.getLogger("teiba.api")
 
@@ -90,6 +97,47 @@ def register_exception_handlers(app: FastAPI) -> None:
         return JSONResponse(
             status_code=exc.status_code,
             content=error_payload(request, exc.code, exc.message, exc.details),
+        )
+
+    @app.exception_handler(PermisoDenegado)
+    async def permiso_handler(request: Request, exc: PermisoDenegado) -> JSONResponse:
+        return JSONResponse(
+            status_code=403,
+            content=error_payload(request, "forbidden", str(exc)),
+        )
+
+    @app.exception_handler(TransicionInvalida)
+    async def transicion_handler(request: Request, exc: TransicionInvalida) -> JSONResponse:
+        return JSONResponse(
+            status_code=409,
+            content=error_payload(request, "invalid_transition", str(exc)),
+        )
+
+    @app.exception_handler(TransicionIncidenteInvalida)
+    async def transicion_incidente_handler(
+        request: Request,
+        exc: TransicionIncidenteInvalida,
+    ) -> JSONResponse:
+        return JSONResponse(
+            status_code=409,
+            content=error_payload(request, "invalid_transition", str(exc)),
+        )
+
+    @app.exception_handler(NotaRequerida)
+    async def nota_handler(request: Request, exc: NotaRequerida) -> JSONResponse:
+        return JSONResponse(
+            status_code=422,
+            content=error_payload(request, "invalid_request", str(exc)),
+        )
+
+    @app.exception_handler(ErrorMantenimiento)
+    async def mantenimiento_handler(
+        request: Request,
+        exc: ErrorMantenimiento,
+    ) -> JSONResponse:
+        return JSONResponse(
+            status_code=422,
+            content=error_payload(request, "invalid_request", str(exc)),
         )
 
     @app.exception_handler(RequestValidationError)

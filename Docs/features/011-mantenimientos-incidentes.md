@@ -30,7 +30,7 @@ transacciones: el estado del incidente se actualiza con una acción explícita.
 |---|---|---|---|
 | 1 | Dominio de estados y permisos | `cd backend && .\.venv\Scripts\python.exe -m pytest tests/unit/test_maintenance.py -q` | exit 0 |
 | 2 | Repositorios e índices | `cd backend && .\.venv\Scripts\python.exe -m pytest tests/integration/test_maintenance_repository.py -q` | exit 0 |
-| 3 | Contrato HTTP y RBAC | `cd backend && .\.venv\Scripts\python.exe -m pytest tests/api/test_maintenance_api.py tests/api/test_incidents_api.py -q` | exit 0 |
+| 3 | Contrato HTTP, RBAC y servicio | `cd backend && .\.venv\Scripts\python.exe -m pytest tests/api/test_maintenance_api.py tests/unit/test_maintenance_service.py -q` | exit 0 |
 | 4 | Seed idempotente | `cd backend && .\.venv\Scripts\python.exe -m app.scripts.seed_mantenimientos` dos veces | mismos conteos |
 | 5 | Suite backend | `cd backend && .\.venv\Scripts\python.exe -m pytest -q && .\.venv\Scripts\python.exe -m ruff check .` | exit 0 |
 | 6 | Frontend compila y prueba | `cd frontend && npm run typecheck && npm run lint && npm run test -- --run && npm run build` | exit 0 |

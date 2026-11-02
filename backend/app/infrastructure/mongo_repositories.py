@@ -198,6 +198,11 @@ class MongoParkRepository:
         parque.pop("_id", None)
         return {**parque, "sectores": sectores}
 
+    def get_parque_id(self, codigo: str) -> Any | None:
+        """Resuelve el código legible al ObjectId que guarda `mantenimientos`."""
+        doc = self._db.parques.find_one({"codigo": codigo}, {"_id": 1})
+        return doc["_id"] if doc else None
+
 
 class MongoProfileRepository:
     """Perfiles de negocio; el correo es el puente con la sesión de auth."""
