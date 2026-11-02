@@ -5,7 +5,8 @@ from uuid import uuid4
 from fastapi import APIRouter, Depends, Request
 
 from app.agent.loop import AgentRunner
-from app.api.deps import get_agent_runner
+from app.api.deps import get_agent_runner, require_admin
+from app.api.security import verificar_origen
 from app.schemas import ConsultaRequest, ConsultaResponse
 
 router = APIRouter(tags=["agente"])
@@ -16,6 +17,8 @@ def consultar(
     body: ConsultaRequest,
     request: Request,
     runner: Annotated[AgentRunner, Depends(get_agent_runner)],
+    _admin: Annotated[None, Depends(require_admin)],
+    _: Annotated[None, Depends(verificar_origen)],
 ) -> ConsultaResponse:
     trace_id = getattr(request.state, "trace_id", "") or uuid4().hex
     resultado = runner.consultar(body.pregunta, trace_id)

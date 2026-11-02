@@ -105,3 +105,25 @@ export interface ApiErrorBody {
   details?: unknown;
   traceId?: string;
 }
+
+// --- Autenticación y sesión ---
+export type AuthRole = 'admin' | 'operator' | 'user';
+export type DomainRole = 'administrador' | 'operador_mantenimiento' | 'ciudadano';
+
+export interface AuthUser {
+  correo: string;
+  rol: AuthRole;
+}
+
+export interface PerfilUsuario {
+  id: string;
+  nombre: string;
+  correo: string;
+  rol: DomainRole;
+}
+
+export interface SessionResponse {
+  usuario: AuthUser;
+  perfil: PerfilUsuario | null;
+  expira_en: string;
+}

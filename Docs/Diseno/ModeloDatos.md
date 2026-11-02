@@ -121,6 +121,11 @@ Para trasladar este modelo a la herramienta de dibujo (Draw.io, Lucidchart o Vis
   - `fecha_programada` (Fecha).
   - `fecha_ejecucion` (Fecha opcional/nula si pendiente).
   - `estado` (Cadena: pendiente, en_proceso, finalizado).
+  - `prioridad` (Cadena: alta, media, baja).
+  - `nota_cierre` (Texto opcional; obligatoria al finalizar).
+  - `nota_reapertura` (Texto opcional; obligatoria al reabrir).
+  - `fecha_reapertura` (Fecha opcional/nula si nunca se reabrió).
+  - `incidente_id` (ObjectId opcional; incidente que originó la tarea).
   - `costo_estimado` (Moneda / Numérico).
 - **Relación con `parques` (`Afecta`):**
   - Rombo `Afecta`. Participación total hacia `mantenimientos` (doble línea), 1:N.
@@ -128,6 +133,8 @@ Para trasladar este modelo a la herramienta de dibujo (Draw.io, Lucidchart o Vis
   - Rombo `Aplica_A`. Participación parcial en ambos extremos (0..1 elemento por mantenimiento, 0..N mantenimientos por elemento).
 - **Relación con `usuarios` (`Ejecuta` / `Asignado_A`):**
   - Rombo `Ejecuta`. Participación total en `mantenimientos` (doble línea: toda orden tiene un responsable), 1:N desde `usuarios`.
+- **Relación con `incidentes` (`Origen`):**
+  - Rombo `Origen`. Participación parcial: un incidente puede generar 0..N mantenimientos y una tarea puede no tener incidente.
 
 #### 7. Entidad `incidentes`
 - **Símbolo:** Rectángulo.
@@ -210,6 +217,11 @@ Conforme a la rúbrica oficial de MongoDB de `DocumentoBase.md:240-253`:
 | | `fecha_programada` | Date (ISODate) | 8 bytes | Fecha planeada de ejecución |
 | | `fecha_ejecucion` | Date (Nullable) | 8 bytes | Fecha efectiva (null si pendiente) |
 | | `estado` | String | 20 caracteres | pendiente, en_proceso, finalizado |
+| | `prioridad` | String | 15 caracteres | alta, media, baja |
+| | `nota_cierre` | String (Nullable) | 300 caracteres | Nota obligatoria al finalizar |
+| | `nota_reapertura` | String (Nullable) | 300 caracteres | Motivo obligatorio al reabrir |
+| | `fecha_reapertura` | Date (Nullable) | 8 bytes | Última reapertura |
+| | `incidente_id` | ObjectId (Nullable) | 12 bytes | Incidente que originó la tarea |
 | | `parque_id` | ObjectId | 12 bytes | Referencia al parque intervenido |
 | | `elemento_id` | ObjectId (Nullable) | 12 bytes | Referencia al elemento de mobiliario intervenido |
 | | `responsable_id` | ObjectId | 12 bytes | Referencia al usuario operador asignado |
@@ -244,6 +256,7 @@ Conforme a la rúbrica oficial de MongoDB de `DocumentoBase.md:240-253`:
 | `elementos_inventario`| `mantenimientos` | 0..1:N | Referenciada (`elemento_id` opcional) | Muchas órdenes atienden áreas generales sin un elemento específico; referenciar permite valores nulos limpios. |
 | `parques` | `mantenimientos` | 1:N | Referenciada (`parque_id`) | Permite consultar el historial de trabajo por parque mediante `$lookup` sin duplicar información. |
 | `usuarios` | `mantenimientos` | 1:N | Referenciada (`responsable_id`) | Asigna la responsabilidad laboral al operador sin anidar los mantenimientos en el perfil del usuario. |
+| `incidentes` | `mantenimientos` | 0..1:N | Referenciada (`incidente_id`) | Vincula la tarea con el reporte ciudadano que la originó sin duplicar la descripción. |
 | `parques` | `incidentes` | 1:N | Referenciada (`parque_id`) | El flujo ciudadano genera miles de quejas que deben agregarse con `$group` y `$lookup` sin inflar el parque. |
 | `usuarios` | `incidentes` | 1:N | Referenciada (`reportado_por_id`) | Garantiza la trazabilidad del ciudadano reportante cumpliendo con el RF :87. |
 
@@ -333,11 +346,26 @@ Conforme a la rúbrica oficial de MongoDB de `DocumentoBase.md:240-253`:
   "fecha_programada": { "$date": "2026-10-20T07:00:00Z" },
   "fecha_ejecucion": null,
   "estado": "pendiente",
+  "prioridad": "alta",
+  "nota_cierre": null,
+  "nota_reapertura": null,
+  "fecha_reapertura": null,
+  "incidente_id": { "$oid": "671155000000000000000001" },
   "parque_id": { "$oid": "671150000000000000000001" },
   "elemento_id": null,
   "responsable_id": { "$oid": "671154000000000000000002" },
   "costo_estimado": 350000.0
 }
+```
+
+Índices operativos:
+
+```javascript
+db.mantenimientos.createIndex({ responsable_id: 1, estado: 1, fecha_programada: 1 });
+db.mantenimientos.createIndex({ estado: 1, prioridad: -1, fecha_programada: 1 });
+db.mantenimientos.createIndex({ incidente_id: 1 });
+db.mantenimientos.createIndex({ parque_id: 1 });
+db.incidentes.createIndex({ parque_id: 1, estado: 1 });
 ```
 
 #### Colección `incidentes`

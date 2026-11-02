@@ -1,4 +1,5 @@
 """Contrato único de errores: `{code, message, details, traceId}`."""
+
 import logging
 from typing import Any
 
@@ -7,7 +8,10 @@ from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 from starlette.exceptions import HTTPException as StarletteHTTPException
 
+from app.api.cookies import limpiar_cookie_sesion
+from app.application.auth.errors import AuthError
 from app.application.errors import AgentError
+from app.config import get_settings
 
 logger = logging.getLogger("teiba.api")
 
@@ -52,10 +56,34 @@ def register_exception_handlers(app: FastAPI) -> None:
 
     @app.exception_handler(ApiError)
     async def api_error_handler(request: Request, exc: ApiError) -> JSONResponse:
-        return JSONResponse(
+        response = JSONResponse(
             status_code=exc.status_code,
             content=error_payload(request, exc.code, exc.message, exc.details),
         )
+        # Rate limit (429) lleva Retry-After tanto en detalle como en header.
+        if exc.code == "rate_limited":
+            reintento = None
+            if isinstance(exc.details, dict):
+                reintento = exc.details.get("retry_after")
+            if reintento is None and exc.status_code == 429:
+                reintento = 60
+            if reintento is not None:
+                response.headers["Retry-After"] = str(reintento)
+        return response
+
+    @app.exception_handler(AuthError)
+    async def auth_error_handler(request: Request, exc: AuthError) -> JSONResponse:
+        response = JSONResponse(
+            status_code=exc.status_code,
+            content=error_payload(request, exc.code, exc.message, exc.details),
+        )
+        # Un 401 de sesión invalida limpia la cookie para que el cliente quede
+        # coherente (login/cierre). Un 401 de login fallido no la borra.
+        if exc.status_code == 401 and exc.code == "not_authenticated":
+            limpiar_cookie_sesion(response, get_settings())
+        if exc.retry_after is not None:
+            response.headers["Retry-After"] = str(exc.retry_after)
+        return response
 
     @app.exception_handler(AgentError)
     async def agent_error_handler(request: Request, exc: AgentError) -> JSONResponse:

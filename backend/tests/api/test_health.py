@@ -16,6 +16,7 @@ def test_health_ok(client, monkeypatch):
     assert body["status"] == "ok"
     assert body["mongo"] == {"ok": True, "db": settings.mongodb_db}
     assert body["llm"]["configurado"] is True
+    assert body["auth"]["ok"] is True
     assert response.headers["X-Trace-Id"]
 
 
@@ -38,6 +39,17 @@ def test_health_degraded_sin_mongo(client, monkeypatch):
 
     assert response.status_code == 200
     assert response.json()["mongo"]["ok"] is False
+
+
+def test_health_degraded_sin_auth(client, monkeypatch, tmp_path):
+    # Forzamos que SQLite falle parcheando la disponibilidad directamente,
+    # porque BaseAuth auto-crea el directorio de la BD.
+    import app.infrastructure.sqlite_auth as sqlite_auth
+    monkeypatch.setattr(sqlite_auth.BaseAuth, "esta_disponible", lambda self: False)
+    response = client.get("/api/health")
+    assert response.status_code == 200
+    assert response.json()["auth"]["ok"] is False
+    assert response.json()["status"] == "degraded"
 
 
 def test_trace_id_se_respeta(client):

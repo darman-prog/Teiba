@@ -4,7 +4,7 @@ La API usa `snake_case`; los tipos del frontend espejan estos nombres.
 """
 from typing import Any, Literal
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 
 class MongoHealth(BaseModel):
@@ -17,11 +17,52 @@ class LlmHealth(BaseModel):
     modelo: str
 
 
+class AuthHealth(BaseModel):
+    ok: bool
+
+
 class HealthResponse(BaseModel):
     status: Literal["ok", "degraded"]
     mongo: MongoHealth
     llm: LlmHealth
+    auth: AuthHealth
     version: str
+
+
+class LoginRequest(BaseModel):
+    """Credenciales para el login. bcrypt trunca a 72 bytes; se valida en UTF-8."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    correo: str = Field(min_length=3, max_length=254)
+    contrasena: str = Field(min_length=1, max_length=256)
+
+    @field_validator("contrasena")
+    @classmethod
+    def contrasena_no_supera_72_bytes(cls, v: str) -> str:
+        if len(v.encode("utf-8")) > 72:
+            raise ValueError("La contraseña supera el límite de 72 bytes.")
+        return v
+
+
+class AuthUser(BaseModel):
+    correo: str
+    rol: Literal["admin", "operator", "user"]
+
+
+class PerfilUsuario(BaseModel):
+    """Perfil de negocio de Mongo; auth solo lo lee y nunca expone PII extra."""
+
+    id: str
+    nombre: str
+    correo: str
+    rol: Literal["administrador", "operador_mantenimiento", "ciudadano"]
+
+
+class SessionResponse(BaseModel):
+    usuario: AuthUser
+    perfil: PerfilUsuario | None = None
+    expira_en: str
 
 
 class ConsultaRequest(BaseModel):

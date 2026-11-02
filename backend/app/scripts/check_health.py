@@ -1,4 +1,5 @@
 """Comprueba el endpoint /api/health de la API en ejecución."""
+
 import json
 import os
 import sys
@@ -24,6 +25,12 @@ def main() -> int:
         return 1
     if not body.get("llm", {}).get("configurado"):
         print("ERROR: OPENCODE_API_KEY no está configurada en backend/.env.")
+        return 1
+    if not body.get("auth", {}).get("ok"):
+        print(
+            "ERROR: la base de identidad SQLite no responde. "
+            "Ejecuta seed_auth y revisa AUTH_DB_PATH."
+        )
         return 1
     return 0
 

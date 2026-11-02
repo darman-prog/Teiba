@@ -6,5 +6,4 @@ import { afterEach } from 'vitest';
 // Limpia el DOM entre pruebas para aislar cada caso.
 afterEach(() => {
   cleanup();
-  sessionStorage.clear();
 });

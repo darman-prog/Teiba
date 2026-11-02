@@ -5,7 +5,7 @@ from typing import Annotated, Literal
 from fastapi import APIRouter, Depends, Query
 from pymongo.errors import PyMongoError
 
-from app.api.deps import get_device_repository, get_reading_repository
+from app.api.deps import get_device_repository, get_reading_repository, require_admin
 from app.api.errors import ApiError
 from app.application.serializers import antiguedad_min, serialize_lectura, str_id
 from app.config import Settings, get_settings
@@ -41,6 +41,9 @@ def _estado(
     return "ok"
 
 
+Admin = Annotated[None, Depends(require_admin)]
+
+
 @router.get("/sensores", response_model=SensorListResponse)
 def listar_sensores(
     devices: Annotated[MongoDeviceRepository, Depends(get_device_repository)],
@@ -48,6 +51,7 @@ def listar_sensores(
     settings: Annotated[Settings, Depends(get_settings)],
     tipo: TipoDispositivo = "calidad_suelo",
     limite: Annotated[int, Query(ge=1, le=50)] = 50,
+    _admin: Admin = None,
 ) -> SensorListResponse:
     try:
         docs = devices.find_devices(tipo=tipo, limite=limite)
