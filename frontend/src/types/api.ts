@@ -127,3 +127,115 @@ export interface SessionResponse {
   perfil: PerfilUsuario | null;
   expira_en: string;
 }
+
+// --- Mantenimientos, incidentes e inventario ---
+export type MaintenanceStatus = 'pendiente' | 'en_proceso' | 'finalizado';
+export type MaintenancePriority = 'alta' | 'media' | 'baja';
+export type IncidentStatus = 'reportado' | 'en_revision' | 'en_proceso' | 'resuelto';
+
+export interface MaintenanceParque {
+  id: string;
+  codigo: string | null;
+  nombre: string;
+}
+
+export interface MaintenanceResponsable {
+  id: string;
+  nombre: string;
+  rol: string | null;
+}
+
+export interface MaintenanceIncidente {
+  id: string;
+  tipo: string | null;
+  descripcion: string | null;
+  prioridad: string | null;
+  estado: IncidentStatus | null;
+}
+
+export interface MaintenanceElemento {
+  id: string;
+  tipo_elemento: string | null;
+  cantidad: number | null;
+  estado: string | null;
+}
+
+export interface MaintenanceItem {
+  id: string;
+  tipo: 'preventivo' | 'correctivo';
+  descripcion: string;
+  prioridad: MaintenancePriority;
+  estado: MaintenanceStatus;
+  fecha_programada: string | null;
+  fecha_ejecucion: string | null;
+  fecha_reapertura: string | null;
+  nota_cierre: string | null;
+  nota_reapertura: string | null;
+  costo_estimado: number | null;
+  vencida: boolean;
+  parque: MaintenanceParque | null;
+  responsable: MaintenanceResponsable | null;
+  incidente: MaintenanceIncidente | null;
+  elemento: MaintenanceElemento | null;
+}
+
+export interface MaintenanceListResponse {
+  items: MaintenanceItem[];
+  total: number;
+}
+
+export interface MaintenanceCreateBody {
+  tipo: 'preventivo' | 'correctivo';
+  descripcion: string;
+  fecha_programada: string;
+  prioridad: MaintenancePriority;
+  parque_codigo: string;
+  responsable_id: string;
+  elemento_id?: string | null;
+  incidente_id?: string | null;
+  costo_estimado?: number | null;
+}
+
+export interface MaintenanceEstadoBody {
+  estado: 'en_proceso' | 'finalizado';
+  nota?: string | null;
+}
+
+export interface OperadorItem {
+  id: string;
+  nombre: string;
+}
+
+export interface OperadorListResponse {
+  items: OperadorItem[];
+  total: number;
+}
+
+export interface IncidenteItem {
+  id: string;
+  tipo: string | null;
+  descripcion: string | null;
+  fecha_hora: string | null;
+  estado: IncidentStatus;
+  prioridad: string | null;
+  parque: MaintenanceParque | null;
+  reportado_por: { id: string; nombre: string } | null;
+}
+
+export interface IncidenteListResponse {
+  items: IncidenteItem[];
+  total: number;
+}
+
+export interface ElementoItem {
+  id: string;
+  tipo_elemento: string | null;
+  cantidad: number | null;
+  estado: string | null;
+  sector: { id: string; codigo: string | null; nombre: string | null } | null;
+}
+
+export interface ElementoListResponse {
+  items: ElementoItem[];
+  total: number;
+}

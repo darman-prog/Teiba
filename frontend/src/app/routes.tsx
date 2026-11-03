@@ -3,6 +3,7 @@ import { Navigate, Route, Routes, useLocation, useNavigate } from 'react-router-
 import { useAuth } from './AuthProvider';
 import { LoginView } from '../features/auth/LoginView';
 import { SageView } from '../features/agent/SageView';
+import { MaintenanceView } from '../features/maintenance/MaintenanceView';
 import { ParkDetail } from '../features/parks/ParkDetail';
 import { ParkIndex } from '../features/parks/ParkIndex';
 import { Showcase } from '../features/showcase/Showcase';
@@ -120,18 +121,6 @@ function ProfileNoConfigurado() {
   );
 }
 
-function MantenimientosPlaceholder() {
-  return (
-    <section className="rounded-[8px] border border-border bg-surface p-5">
-      <p className="field-label">Mantenimientos</p>
-      <h1 className="mt-1 font-display text-[20px] font-semibold text-ink">En construcción</h1>
-      <p className="mt-2 text-[14px] text-ink-2">
-        La vista de tareas llega con la feature de mantenimientos.
-      </p>
-    </section>
-  );
-}
-
 export function AppRoutes() {
   return (
     <Routes>
@@ -166,7 +155,7 @@ export function AppRoutes() {
         element={
           <RequireAuth>
             <RequireMantenimientos>
-              <MantenimientosPlaceholder />
+              <MaintenanceView />
             </RequireMantenimientos>
           </RequireAuth>
         }

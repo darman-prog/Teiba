@@ -20,6 +20,17 @@ vi.mock('../api/auth', () => ({
   postLogout: vi.fn(async () => ({ data: null, traceId: null })),
 }));
 
+vi.mock('../api/maintenance', () => ({
+  fetchMantenimientos: vi.fn(async () => ({ items: [], total: 0 })),
+  fetchOperadores: vi.fn(async () => ({ items: [], total: 0 })),
+  fetchIncidentes: vi.fn(async () => ({ items: [], total: 0 })),
+  fetchElementos: vi.fn(async () => ({ items: [], total: 0 })),
+  createMantenimiento: vi.fn(),
+  changeMantenimientoEstado: vi.fn(),
+  reassignMantenimiento: vi.fn(),
+  changeIncidenteEstado: vi.fn(),
+}));
+
 const ADMIN: SessionResponse = {
   usuario: { correo: 'admin@teiba.local', rol: 'admin' },
   perfil: {
@@ -90,12 +101,12 @@ describe('auth y guards', () => {
 
   it('admin con perfil administrador puede ver mantenimientos', async () => {
     renderAt('/mantenimientos', ADMIN);
-    expect(await screen.findByRole('heading', { name: /en construcción/i })).toBeInTheDocument();
+    expect(await screen.findByRole('heading', { name: /^mantenimientos$/i })).toBeInTheDocument();
   });
 
   it('operator con perfil operador puede ver mantenimientos', async () => {
     renderAt('/mantenimientos', OPERATOR);
-    expect(await screen.findByRole('heading', { name: /en construcción/i })).toBeInTheDocument();
+    expect(await screen.findByRole('heading', { name: /mis tareas/i })).toBeInTheDocument();
   });
 
   it('operator sin perfil no entra a mantenimientos', async () => {

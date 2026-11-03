@@ -1,5 +1,5 @@
 import { LogOut } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from './AuthProvider';
 import type { DomainRole } from '../types/api';
 
@@ -17,6 +17,11 @@ export function AccountMenu() {
   if (!usuario) return null;
   const nombre = perfil?.nombre ?? usuario.correo;
   const rol = perfil ? ROL_LABEL[perfil.rol] : 'Perfil no configurado';
+  const perfilMantenimiento =
+    perfil?.rol === 'administrador' || perfil?.rol === 'operador_mantenimiento';
+  const verMantenimientos =
+    (usuario.rol === 'admin' && perfilMantenimiento) ||
+    (usuario.rol === 'operator' && perfil?.rol === 'operador_mantenimiento');
 
   async function cerrarSesion() {
     await logout();
@@ -30,6 +35,27 @@ export function AccountMenu() {
         <span className="hidden text-[12px] font-normal text-ink-2 sm:inline">{rol}</span>
       </summary>
       <div className="absolute right-0 z-40 mt-2 w-64 rounded-[8px] border border-border bg-surface p-2 text-[13px]">
+        <nav aria-label="Navegación de la sesión" className="mb-1 flex flex-col border-b border-border pb-1">
+          {usuario.rol === 'admin' && (
+            <Link to="/sage" className="rounded-[4px] px-2 py-1.5 font-semibold text-ink hover:bg-neutral-soft">
+              Estación Sage
+            </Link>
+          )}
+          {verMantenimientos && (
+            <Link
+              to="/mantenimientos"
+              className="rounded-[4px] px-2 py-1.5 font-semibold text-ink hover:bg-neutral-soft"
+            >
+              {usuario.rol === 'admin' ? 'Mantenimientos' : 'Mis tareas'}
+            </Link>
+          )}
+          <Link
+            to="/parques"
+            className="rounded-[4px] px-2 py-1.5 font-semibold text-ink hover:bg-neutral-soft"
+          >
+            Libro de parques
+          </Link>
+        </nav>
         <p className="truncate px-2 py-1 text-ink-2">{usuario.correo}</p>
         <p className="px-2 py-1 text-[12px] text-ink-2">
           Acceso: <span className="font-mono">{usuario.rol}</span>

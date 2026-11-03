@@ -15,11 +15,10 @@ Que el administrador asigne y controle tareas de mantenimiento y que el operador
 ejecute solo las suyas, con trazabilidad de cierre y reapertura.
 
 ## Contexto
-`mantenimientos` e `incidentes` existen en el modelo pero el panel no los usa.
-Auth expone hoy `admin`/`user`; el operador requiere un rol de acceso y un perfil
-Mongo (`usuarios`) que aporte el ObjectId de `responsable_id`. Mongo corre sin
-transacciones: el estado del incidente se actualiza con una acción explícita.
-
+`mantenimientos` e `incidentes` existen en el modelo pero el panel no los usaba.
+Auth expone `admin`/`operator`/`user` y el perfil de dominio se resuelve por correo;
+`responsable_id` es el ObjectId de ese perfil. Mongo corre sin transacciones: el
+estado del incidente se actualiza con una acción explícita.
 ## Alcance
 | Incluye | Excluye |
 |---|---|
@@ -31,21 +30,19 @@ transacciones: el estado del incidente se actualiza con una acción explícita.
 | 1 | Dominio de estados y permisos | `cd backend && .\.venv\Scripts\python.exe -m pytest tests/unit/test_maintenance.py -q` | exit 0 |
 | 2 | Repositorios e índices | `cd backend && .\.venv\Scripts\python.exe -m pytest tests/integration/test_maintenance_repository.py -q` | exit 0 |
 | 3 | Contrato HTTP, RBAC y servicio | `cd backend && .\.venv\Scripts\python.exe -m pytest tests/api/test_maintenance_api.py tests/unit/test_maintenance_service.py -q` | exit 0 |
-| 4 | Seed idempotente | `cd backend && .\.venv\Scripts\python.exe -m app.scripts.seed_mantenimientos` dos veces | mismos conteos |
+| 4 | Seed idempotente | `cd backend && .\.venv\Scripts\python.exe -m app.scripts.seed_mantenimientos && .\.venv\Scripts\python.exe -m app.scripts.seed_mantenimientos` | mismos conteos |
 | 5 | Suite backend | `cd backend && .\.venv\Scripts\python.exe -m pytest -q && .\.venv\Scripts\python.exe -m ruff check .` | exit 0 |
 | 6 | Frontend compila y prueba | `cd frontend && npm run typecheck && npm run lint && npm run test -- --run && npm run build` | exit 0 |
-| 7 | Accesibilidad | `cd frontend && npm run test -- --run src/features/maintenance` | axe 0 |
+| 7 | Accesibilidad | `cd frontend && npm run test -- --run src/features/maintenance src/app/App.axe.test.tsx` | axe 0 |
 | 8 | Tokens y detector | `cd frontend && npm run check:ui && npm run detect:ui` | exit 0 / `[]` |
-
 ## Pasos
 1. Contrato y modelo — `docs: definir mantenimientos e incidentes`
 2. Dominio y tests — `feat: implementar reglas de mantenimientos`
 3. Repositorios e índices — `feat: persistir mantenimientos e incidentes`
 4. API y RBAC — `feat: exponer mantenimientos por rol`
 5. Seed y datos demo — `feat: sembrar tareas e incidentes`
-6. Frontend admin — `feat: añadir vista de mantenimientos del administrador`
-7. Frontend operador — `feat: añadir mis tareas al operador`
-8. Cierre visual y docs — `docs: cerrar mantenimientos e incidentes`
+6. Frontend admin y operador — `feat: añadir la vista de mantenimientos por rol`
+7. Cierre visual y docs — rama de UI; tokens actuales hasta el pase visual
 
 ## Bitácora
 | Criterio | Fecha | Comando | Exit | Commit |
