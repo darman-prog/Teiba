@@ -455,6 +455,15 @@ campos usan `snake_case`, salvo `traceId` en el contrato de errores.
 | `POST` | `/api/auth/logout` | cookie | 204 |
 | `GET` | `/api/auth/me` | cookie | 200 con `usuario`, `perfil`, `expira_en` |
 | `GET` | `/api/health` | — | 200 con `status`, `mongo`, `llm`, `auth`, `version` |
+| `GET` | `/api/mantenimientos` | `estado`, `prioridad`, `parque`, `limite` | 200 con `items[]` y `total`; admin ve todas, operador las suyas |
+| `POST` | `/api/mantenimientos` | tarea y responsable | 201 con la tarea creada (admin) |
+| `GET` | `/api/mantenimientos/{id}` | — | 200 con la tarea (admin o responsable) |
+| `PATCH` | `/api/mantenimientos/{id}/estado` | `{ "estado", "nota"? }` | 200; operador inicia/finaliza, admin finaliza/reabre |
+| `PATCH` | `/api/mantenimientos/{id}/responsable` | `{ "responsable_id" }` | 200; admin |
+| `GET` | `/api/operadores` | — | 200 con operadores para asignar (admin) |
+| `GET` | `/api/incidentes` | `parque`, `estado` | 200 con incidentes vinculables (admin) |
+| `PATCH` | `/api/incidentes/{id}/estado` | `{ "estado" }` | 200; admin |
+| `GET` | `/api/elementos` | `parque` | 200 con inventario vinculable (admin) |
 | `GET` | `/api/sensores` | `tipo`, `limite` | 200 con `items[]` y `total` |
 | `POST` | `/api/agente/consulta` | `{ "pregunta": "..." }` | 200 con `respuesta`, `trazas[]`, `meta` |
 | `GET` | `/docs` | — | Swagger UI |
@@ -987,7 +996,7 @@ aparecen fuera de aquí, el documento está mal.
    final.
 6. **Scripts JS**: decidir si se versionan o se mantienen locales; no se toca el
    `.gitignore` sin acuerdo.
-7. **Mantenimientos**: la vista de tareas e incidentes vive en `feat/mantenimientos` (spec 011).
+7. **Mantenimientos**: la vista admin/operador está cerrada en la feature 011.
 
 Cuando el frontend esté implementado, este archivo debe actualizar su sección 8,
 su sección 11 y su fecha.

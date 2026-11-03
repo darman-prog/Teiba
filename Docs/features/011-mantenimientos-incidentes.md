@@ -1,10 +1,10 @@
 ---
 id: 011
-status: en-curso
+status: cerrada
 area: backend
 tarea: B-001
 created: 2026-10-31
-updated: 2026-10-31
+updated: 2026-11-02
 ---
 # Feature 011 — Mantenimientos e incidentes por rol
 
@@ -50,6 +50,11 @@ estado del incidente se actualiza con una acción explícita.
 | 1 | 2026-10-31 | cd backend && .\.venv\Scripts\python.exe -m pytest tests/unit/test_maintenance.py -q | 0 | f8def0a |
 | 2 | 2026-10-31 | cd backend && .\.venv\Scripts\python.exe -m pytest tests/integration/test_maintenance_repository.py -q | 0 | 04c25ca |
 | 3 | 2026-11-02 | cd backend && .\.venv\Scripts\python.exe -m pytest tests/api/test_maintenance_api.py tests/unit/test_maintenance_service.py -q | 0 | 77139c9 |
+| 4 | 2026-11-02 | cd backend && .\.venv\Scripts\python.exe -m app.scripts.seed_mantenimientos && .\.venv\Scripts\python.exe -m app.scripts.seed_mantenimientos | 0 | e52e54d |
+| 5 | 2026-11-02 | cd backend && .\.venv\Scripts\python.exe -m pytest -q && .\.venv\Scripts\python.exe -m ruff check . | 0 | e52e54d |
+| 6 | 2026-11-02 | cd frontend && npm run typecheck && npm run lint && npm run test -- --run && npm run build | 0 | e52e54d |
+| 7 | 2026-11-02 | cd frontend && npm run test -- --run src/features/maintenance src/app/App.axe.test.tsx | 0 | e52e54d |
+| 8 | 2026-11-02 | cd frontend && npm run check:ui && npm run detect:ui | 0 | e52e54d |
 
 ## Rollback
 Revertir los commits de `feat/mantenimientos`; no hay migración de datos existente.

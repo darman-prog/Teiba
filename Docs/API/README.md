@@ -83,9 +83,21 @@ automáticamente.
 | `GET` | `/api/health` | — | — | 200 `status,mongo,llm,auth,version` | 500 |
 | `GET` | `/api/parques` | sesión | — | 200 | 401 |
 | `GET` | `/api/parques/{codigo}` | sesión | `codigo` | 200 | 401, 404, 422, 503 |
+| `GET` | `/api/mantenimientos` | admin/operador | `estado`, `prioridad`, `parque`, `limite` | 200 | 401, 403, 422, 503 |
+| `POST` | `/api/mantenimientos` | admin | tarea y responsable | 201 | 401, 403, 409, 422, 503 |
+| `GET` | `/api/mantenimientos/{id}` | admin/operador | `id` | 200 | 401, 403, 404, 503 |
+| `PATCH` | `/api/mantenimientos/{id}/estado` | admin/operador | `estado`, `nota` | 200 | 401, 403, 409, 422, 503 |
+| `PATCH` | `/api/mantenimientos/{id}/responsable` | admin | `responsable_id` | 200 | 401, 403, 404, 422, 503 |
+| `GET` | `/api/operadores` | admin | — | 200 | 401, 403, 503 |
+| `GET` | `/api/incidentes` | admin | `parque`, `estado` | 200 | 401, 403, 422, 503 |
+| `PATCH` | `/api/incidentes/{id}/estado` | admin | `estado` | 200 | 401, 403, 409, 422, 503 |
+| `GET` | `/api/elementos` | admin | `parque` | 200 | 401, 403, 422, 503 |
 | `GET` | `/api/sensores` | admin | `tipo`, `limite` | 200 | 401, 403, 422, 503 |
 | `POST` | `/api/agente/consulta` | admin | `{"pregunta":"..."}` | 200 | 401, 403, 422, 429, 502, 503, 504 |
 | `GET` | `/docs`, `/redoc`, `/openapi.json` | — | — | HTML/JSON | — |
+
+El contrato detallado de mantenimientos, estados y permisos vive en
+`Docs/features/011-mantenimientos-incidentes.md`.
 
 Parámetros de `/api/sensores`:
 
