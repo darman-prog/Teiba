@@ -89,7 +89,7 @@ def _item(doc: dict, ahora: datetime) -> MantenimientoItem:
         id=str(doc["_id"]),
         tipo=doc["tipo"],
         descripcion=doc["descripcion"],
-        prioridad=doc["prioridad"],
+        prioridad=doc.get("prioridad", "media"),
         estado=doc["estado"],
         fecha_programada=iso(fecha),
         fecha_ejecucion=iso(doc.get("fecha_ejecucion")),

@@ -189,6 +189,12 @@ def main() -> int:
         MongoMaintenanceRepository(db).ensure_indexes()
         MongoIncidentRepository(db).ensure_indexes()
         MongoInventoryRepository(db).ensure_indexes()
+
+        # Documentos anteriores a la feature 011 no traen prioridad.
+        legado = db.mantenimientos.update_many(
+            {"prioridad": {"$exists": False}},
+            {"$set": {"prioridad": "media"}},
+        )
     except PyMongoError as exc:
         print(f"ERROR: no se pudo sembrar mantenimientos: {type(exc).__name__}.")
         return 1
@@ -198,6 +204,8 @@ def main() -> int:
     print(f"Demo sembrada en el parque {codigo}:")
     print(f"  - perfiles: {perfil_admin}, {perfil_operador}, {perfil_otro}, {perfil_ciudadano}")
     print(f"  - 3 incidentes, 2 elementos y {len(TAREAS)} tareas (idempotente).")
+    if legado.modified_count:
+        print(f"  - prioridad 'media' agregada a {legado.modified_count} tareas antiguas.")
     return 0
 
 
