@@ -30,7 +30,7 @@ El frontend ya tenía `LoginView`, `AuthProvider`, guards y `AccountMenu`.
 |---|---|---|---|
 | 1 | Registro público crea `user` + perfil `ciudadano`, cookie y rechaza `rol` del cliente | `cd backend && .\.venv\Scripts\python.exe -m pytest tests/api/test_auth_register_api.py -q` | 10 passed |
 | 2 | Login/CSRF/RBAC existentes no se rompen | `cd backend && .\.venv\Scripts\python.exe -m pytest tests/api/test_auth_api.py -q` | 22 passed |
-| 3 | Suite backend y lint | `cd backend && .\.venv\Scripts\python.exe -m pytest -q && .\.venv\Scripts\python.exe -m ruff check .` | 156 passed, 22 skipped; ruff 0 |
+| 3 | Suite backend y lint | `cd backend && .\.venv\Scripts\python.exe -m pytest -q && .\.venv\Scripts\python.exe -m ruff check .` | 179 passed; ruff 0 |
 | 4 | Registro y rutas de auth en frontend | `cd frontend && npx vitest run src/features/auth src/app/AuthRoutes.test.tsx src/app/App.axe.test.tsx` | 26 passed |
 | 5 | Frontend compila, prueba y build | `cd frontend && npm run typecheck && npm run lint && npx vitest run && npm run build` | 57 passed |
 | 6 | Accesibilidad y tokens | `cd frontend && npm run check:ui && npm run detect:ui` | OK / `[]` |
