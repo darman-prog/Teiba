@@ -10,6 +10,7 @@ const auth = vi.hoisted(() => ({
   fetchMe: vi.fn(),
   postLogin: vi.fn(),
   postLogout: vi.fn(),
+  postRegister: vi.fn(),
 }));
 
 vi.mock('../../api/auth', () => auth);

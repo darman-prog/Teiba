@@ -7,7 +7,7 @@ import {
   useState,
   type ReactNode,
 } from 'react';
-import { fetchMe, postLogin, postLogout } from '../api/auth';
+import { fetchMe, postLogin, postLogout, postRegister } from '../api/auth';
 import { ApiError } from '../api/errors';
 import type { AuthUser, PerfilUsuario, SessionResponse } from '../types/api';
 
@@ -19,6 +19,7 @@ interface AuthContextValue {
   perfil: PerfilUsuario | null;
   error: string | null;
   login: (correo: string, contrasena: string) => Promise<SessionResponse>;
+  register: (correo: string, contrasena: string, nombre?: string) => Promise<SessionResponse>;
   logout: () => Promise<void>;
   refresh: () => Promise<void>;
 }
@@ -78,6 +79,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return data;
   }, []);
 
+  // El alta deja la sesión iniciada: el backend ya emitió la cookie HttpOnly.
+  const register = useCallback(
+    async (correo: string, contrasena: string, nombre?: string) => {
+      const { data } = await postRegister(correo.trim(), contrasena, nombre?.trim() || undefined);
+      setUsuario(data.usuario);
+      setPerfil(data.perfil);
+      setStatus('authenticated');
+      setError(null);
+      return data;
+    },
+    [],
+  );
+
   const logout = useCallback(async () => {
     try {
       await postLogout();
@@ -88,8 +102,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [clear]);
 
   const value = useMemo(
-    () => ({ status, usuario, perfil, error, login, logout, refresh }),
-    [status, usuario, perfil, error, login, logout, refresh],
+    () => ({ status, usuario, perfil, error, login, register, logout, refresh }),
+    [status, usuario, perfil, error, login, register, logout, refresh],
   );
 
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;

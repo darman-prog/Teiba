@@ -1,9 +1,11 @@
 import { useState, type FormEvent } from 'react';
-import { useLocation, useNavigate } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { ApiError } from '../../api/errors';
 import { useAuth } from '../../app/AuthProvider';
 import { destinoSeguro, homeForPerfil } from '../../lib/navigation';
 import { Button } from '../../shared/ui/Button';
+import { AuthField } from './AuthField';
+import { AuthLayout } from './AuthLayout';
 
 function mensajeError(err: unknown): string {
   if (err instanceof ApiError) {
@@ -43,60 +45,59 @@ export function LoginView() {
   }
 
   return (
-    <section aria-labelledby="login-title" className="mx-auto mt-6 max-w-md">
-      <div className="rounded-[8px] border border-border bg-surface p-5">
-        <p className="field-label">Acceso local</p>
-        <h1 id="login-title" className="mt-1 font-display text-[20px] font-semibold text-ink">
-          Entrar a Teiba
-        </h1>
-        <p className="mt-1 text-[13px] text-ink-2">
-          Usa tu cuenta de demostración. La sesión queda en una cookie httpOnly.
+    <AuthLayout
+      kicker="Acceso local"
+      title="Entrar a Teiba"
+      intro="Usa tu cuenta de demostración. La sesión queda en una cookie HttpOnly y el rol se decide en el servidor."
+      footer={
+        <p>
+          ¿Aún no tienes cuenta?{' '}
+          <Link
+            to="/registro"
+            className="font-semibold text-moss underline decoration-copper decoration-2 underline-offset-4 hover:text-moss-deep"
+          >
+            Crear cuenta de ciudadano
+          </Link>
         </p>
+      }
+    >
+      <form className="flex flex-col gap-4" onSubmit={onSubmit} aria-busy={enviando}>
+        <AuthField
+          id="login-correo"
+          label="Correo"
+          type="email"
+          autoComplete="username"
+          required
+          value={correo}
+          onChange={(e) => setCorreo(e.target.value)}
+          disabled={enviando}
+          placeholder="nombre@teiba.local"
+        />
 
-        <form className="mt-4 flex flex-col gap-3" onSubmit={onSubmit}>
-          <div className="flex flex-col gap-1">
-            <label htmlFor="login-correo" className="field-label">
-              Correo
-            </label>
-            <input
-              id="login-correo"
-              type="email"
-              autoComplete="username"
-              required
-              value={correo}
-              onChange={(e) => setCorreo(e.target.value)}
-              disabled={enviando}
-              className="rounded-[6px] border border-border bg-surface px-3 py-2 text-[14px] text-ink"
-            />
-          </div>
+        <AuthField
+          id="login-contrasena"
+          label="Contraseña"
+          type="password"
+          autoComplete="current-password"
+          required
+          value={contrasena}
+          onChange={(e) => setContrasena(e.target.value)}
+          disabled={enviando}
+        />
 
-          <div className="flex flex-col gap-1">
-            <label htmlFor="login-contrasena" className="field-label">
-              Contraseña
-            </label>
-            <input
-              id="login-contrasena"
-              type="password"
-              autoComplete="current-password"
-              required
-              value={contrasena}
-              onChange={(e) => setContrasena(e.target.value)}
-              disabled={enviando}
-              className="rounded-[6px] border border-border bg-surface px-3 py-2 text-[14px] text-ink"
-            />
-          </div>
+        {error && (
+          <p
+            role="alert"
+            className="rounded-[6px] border border-danger/40 bg-danger-soft px-3 py-2 text-[13px] font-semibold text-danger"
+          >
+            {error}
+          </p>
+        )}
 
-          {error && (
-            <p role="alert" className="rounded-[6px] border border-danger/40 bg-danger-soft px-3 py-2 text-[13px] text-danger">
-              {error}
-            </p>
-          )}
-
-          <Button type="submit" disabled={enviando}>
-            {enviando ? 'Entrando…' : 'Entrar'}
-          </Button>
-        </form>
-      </div>
-    </section>
+        <Button type="submit" disabled={enviando} className="w-full">
+          {enviando ? 'Entrando…' : 'Entrar'}
+        </Button>
+      </form>
+    </AuthLayout>
   );
 }

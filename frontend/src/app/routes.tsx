@@ -2,6 +2,7 @@ import type { ReactElement } from 'react';
 import { Navigate, Route, Routes, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from './AuthProvider';
 import { LoginView } from '../features/auth/LoginView';
+import { RegisterView } from '../features/auth/RegisterView';
 import { SageView } from '../features/agent/SageView';
 import { MaintenanceView } from '../features/maintenance/MaintenanceView';
 import { ParkDetail } from '../features/parks/ParkDetail';
@@ -129,6 +130,14 @@ export function AppRoutes() {
         element={
           <PublicOnly>
             <LoginView />
+          </PublicOnly>
+        }
+      />
+      <Route
+        path="/registro"
+        element={
+          <PublicOnly>
+            <RegisterView />
           </PublicOnly>
         }
       />

@@ -21,6 +21,7 @@ backend/data/
 # Node
 frontend/node_modules/
 frontend/dist/
+frontend/.vitest/
 npm-debug.log*
 
 # Editores y sistema

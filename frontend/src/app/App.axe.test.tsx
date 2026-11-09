@@ -15,6 +15,7 @@ vi.mock('../api/auth', () => ({
   }),
   postLogin: vi.fn(),
   postLogout: vi.fn(async () => ({ data: null, traceId: null })),
+  postRegister: vi.fn(),
 }));
 
 vi.mock('../api/maintenance', () => ({
@@ -83,6 +84,15 @@ describe('axe auth', () => {
   it('login sin violaciones', async () => {
     const container = await renderizar(
       '/login',
+      null,
+      new ApiError({ code: 'not_authenticated', message: 'Sin sesión', status: 401 }),
+    );
+    expect((await axe(container)).violations).toEqual([]);
+  }, 15000);
+
+  it('registro sin violaciones', async () => {
+    const container = await renderizar(
+      '/registro',
       null,
       new ApiError({ code: 'not_authenticated', message: 'Sin sesión', status: 401 }),
     );

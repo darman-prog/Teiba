@@ -14,6 +14,15 @@ export function postLogin(correo: string, contrasena: string) {
   });
 }
 
+// Alta pública: el servidor fija rol `user` y perfil ciudadano.
+export function postRegister(correo: string, contrasena: string, nombre?: string) {
+  return requestJson<SessionResponse>('/api/auth/register', {
+    method: 'POST',
+    body: nombre ? { correo, contrasena, nombre } : { correo, contrasena },
+    timeoutMs: 15000,
+  });
+}
+
 export function postLogout() {
   return requestJson<null>('/api/auth/logout', { method: 'POST', timeoutMs: 8000 });
 }

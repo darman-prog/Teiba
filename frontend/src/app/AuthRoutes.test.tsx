@@ -18,6 +18,7 @@ vi.mock('../api/auth', () => ({
   }),
   postLogin: vi.fn(),
   postLogout: vi.fn(async () => ({ data: null, traceId: null })),
+  postRegister: vi.fn(),
 }));
 
 vi.mock('../api/maintenance', () => ({
@@ -92,6 +93,18 @@ describe('auth y guards', () => {
   it('anónimo en /sage va a login', async () => {
     renderAt('/sage', null, ANONIMO);
     expect(await screen.findByRole('heading', { name: /entrar a teiba/i })).toBeInTheDocument();
+  });
+
+  it('anónimo en /registro ve el alta de ciudadano', async () => {
+    renderAt('/registro', null, ANONIMO);
+    expect(
+      await screen.findByRole('heading', { name: /crear cuenta de ciudadano/i }),
+    ).toBeInTheDocument();
+  });
+
+  it('autenticado en /registro va a su home', async () => {
+    renderAt('/registro', OPERATOR);
+    expect(await screen.findByRole('heading', { name: /mis tareas/i })).toBeInTheDocument();
   });
 
   it('admin abre la estación', async () => {
