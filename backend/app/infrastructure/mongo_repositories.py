@@ -4,11 +4,14 @@
 `sectores` y `parques`; no existen nombres desnormalizados en el dispositivo.
 """
 import re
-from datetime import datetime
+from datetime import UTC, datetime
 from typing import Any
 
 from bson import ObjectId
 from pymongo.database import Database
+from pymongo.errors import DuplicateKeyError, PyMongoError
+
+from app.domain.auth.errors import AlmacenPerfilNoDisponible
 
 DEVICE_PROJECTION = {
     "_id": 1,
@@ -228,6 +231,28 @@ class MongoProfileRepository:
                 self.PROJECTION,
             ).sort("nombre", 1)
         )
+
+    def create_perfil(self, correo: str, nombre: str, rol: str) -> dict[str, Any] | None:
+        """Alta atómica por correo: si ya existe un perfil, no se secuestra."""
+        limpio = (correo or "").strip().lower()
+        try:
+            if self._db.usuarios.find_one({"correo": limpio}, {"_id": 1}):
+                return None
+            creado = self._db.usuarios.insert_one(
+                {
+                    "nombre": nombre,
+                    "correo": limpio,
+                    "telefono": "",
+                    "rol": rol,
+                    "fecha_registro": datetime.now(UTC),
+                }
+            )
+        except DuplicateKeyError:
+            # Si existe un índice único por correo, otro alta ganó la carrera.
+            return None
+        except PyMongoError as exc:
+            raise AlmacenPerfilNoDisponible() from exc
+        return {"_id": creado.inserted_id, "nombre": nombre, "correo": limpio, "rol": rol}
 
 
 class MongoMaintenanceRepository:

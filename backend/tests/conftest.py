@@ -79,6 +79,14 @@ class FakeProfileRepository:
     def get_by_correo(self, correo: str):
         return self.PERFILES.get((correo or "").strip().lower())
 
+    def create_perfil(self, correo: str, nombre: str, rol: str):
+        limpio = (correo or "").strip().lower()
+        if not limpio or limpio in self.PERFILES:
+            return None
+        doc = {"_id": f"{limpio}-mongo", "nombre": nombre, "correo": limpio, "rol": rol}
+        self.PERFILES[limpio] = doc
+        return doc
+
 
 @pytest.fixture()
 def app(monkeypatch, _auth_env):

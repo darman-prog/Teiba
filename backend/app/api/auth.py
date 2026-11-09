@@ -13,7 +13,7 @@ from app.api.deps import get_auth_service, get_profile_repository
 from app.api.security import verificar_origen
 from app.application.ports import ProfileRepository
 from app.config import Settings, get_settings
-from app.schemas import LoginRequest, PerfilUsuario, SessionResponse
+from app.schemas import LoginRequest, PerfilUsuario, RegisterRequest, SessionResponse
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
@@ -77,6 +77,33 @@ def login(
         limitador.registrar_fallo(request, body.correo)
         raise
     limitador.reiniciar(request, body.correo)
+    max_age = int((resultado.expira_en - datetime.now(resultado.expira_en.tzinfo)).total_seconds())
+    establecer_cookie_sesion(response, settings, resultado.token, max_age)
+    return SessionResponse(
+        usuario={"correo": resultado.usuario.correo, "rol": resultado.usuario.rol.value},
+        perfil=_perfil_de(perfiles, resultado.usuario.correo, request),
+        expira_en=_a_iso_z(resultado.expira_en),
+    )
+
+
+@router.post("/register", response_model=SessionResponse, status_code=201)
+def register(
+    body: RegisterRequest,
+    request: Request,
+    response: Response,
+    settings: Annotated[Settings, Depends(get_settings)],
+    service: Annotated[object, Depends(get_auth_service)],
+    perfiles: Annotated[ProfileRepository, Depends(get_profile_repository)],
+    _: Annotated[None, Depends(verificar_origen)],
+) -> SessionResponse:
+    """Alta pública de ciudadano: rol `user` y perfil `ciudadano` fijados aquí."""
+    request.app.state.register_rate_limit.comprobar(request)
+    resultado = service.register(
+        body.correo,
+        body.contrasena,
+        body.nombre,
+        _leer_token(request, settings),
+    )
     max_age = int((resultado.expira_en - datetime.now(resultado.expira_en.tzinfo)).total_seconds())
     establecer_cookie_sesion(response, settings, resultado.token, max_age)
     return SessionResponse(

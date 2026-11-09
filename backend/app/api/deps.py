@@ -105,6 +105,7 @@ def get_agent_runner() -> AgentRunner:
 
 def get_auth_service(
     settings: Annotated[Settings, Depends(get_settings)],
+    perfiles: Annotated[MongoProfileRepository, Depends(get_profile_repository)],
 ) -> AuthService:
     """Construye el servicio de auth por request (sin lru_cache: tests cambian env)."""
     base = BaseAuth(settings.auth_db_path)
@@ -115,6 +116,7 @@ def get_auth_service(
         hasher=BcryptPasswordHasher(settings.auth_bcrypt_rounds),
         clock=SystemClock(),
         ttl=timedelta(hours=settings.auth_session_ttl_hours),
+        profiles=perfiles,
     )
 
 

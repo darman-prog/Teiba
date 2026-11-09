@@ -21,7 +21,7 @@ from app.api.maintenance import router as maintenance_router
 from app.api.middleware import RateLimitMiddleware, TraceIdMiddleware
 from app.api.operators import router as operators_router
 from app.api.parks import router as parks_router
-from app.api.security import _RateLimitLogin
+from app.api.security import _RateLimitLogin, _RateLimitRegistro
 from app.api.sensors import router as sensors_router
 from app.config import get_settings
 
@@ -72,6 +72,7 @@ def create_app() -> FastAPI:
 
     # Rate limiter de login con estado compartido entre requests (misma app).
     app.state.login_rate_limit = _RateLimitLogin(settings)
+    app.state.register_rate_limit = _RateLimitRegistro(settings)
 
     register_exception_handlers(app)
     app.include_router(auth_router, prefix="/api")

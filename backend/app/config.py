@@ -60,6 +60,9 @@ class Settings(BaseSettings):
     # Rate limit de login: fallos por (IP, correo) dentro de la ventana.
     auth_login_max_failures: int = 5
     auth_login_window_seconds: int = 60
+    # Rate limit del registro público: altas por IP dentro de la ventana.
+    auth_register_max_per_window: int = 5
+    auth_register_window_seconds: int = 60
 
     @field_validator("cors_origins")
     @classmethod

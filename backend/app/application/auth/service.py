@@ -12,11 +12,18 @@ from app.application.auth.errors import AuthError, AuthStorageError
 from app.application.ports import (
     Clock,
     PasswordHasher,
+    ProfileRepository,
     SessionRepository,
     UserRepository,
 )
-from app.domain.auth.errors import AlmacenAuthNoDisponible
-from app.domain.auth.models import Sesion, Usuario
+from app.domain.auth.errors import (
+    AlmacenAuthNoDisponible,
+    AlmacenPerfilNoDisponible,
+    CorreoYaRegistrado,
+)
+from app.domain.auth.models import Rol, Sesion, Usuario
+
+PASSWORD_MIN_CHARS = 12
 
 
 def _hash_token(token: str) -> str:
@@ -51,15 +58,16 @@ class AuthService:
         hasher: PasswordHasher,
         clock: Clock,
         ttl: timedelta,
+        profiles: ProfileRepository,
     ) -> None:
         self._users = users
         self._sessions = sessions
         self._hasher = hasher
         self._clock = clock
         self._ttl = ttl
+        self._profiles = profiles
 
     def login(self, correo: str, contrasena: str, token_previo: str | None) -> SesionIniciada:
-        ahora = self._clock.now()
         correo_norm = self._normalizar_correo(correo)
 
         try:
@@ -75,6 +83,52 @@ class AuthService:
         if not cred.usuario.activo or not self._hasher.verify(contrasena, cred.password_hash):
             raise AuthError(401, "invalid_credentials", "Correo o contraseña incorrectos.")
 
+        return self._iniciar_sesion(cred.usuario, token_previo)
+
+    def register(
+        self,
+        correo: str,
+        contrasena: str,
+        nombre: str | None,
+        token_previo: str | None = None,
+    ) -> SesionIniciada:
+        """Alta pública: rol de acceso `user` y perfil `ciudadano` fijados aquí."""
+        correo_norm = self._normalizar_correo(correo)
+        self._validar_contrasena(contrasena)
+        nombre_norm = (nombre or "").strip() or correo_norm.split("@")[0]
+        if len(nombre_norm) > 80:
+            raise AuthError(
+                422, "invalid_request", "El nombre no puede superar 80 caracteres."
+            )
+
+        password_hash = self._hasher.hash(contrasena)
+        try:
+            usuario = self._users.create_usuario(correo_norm, password_hash, Rol.USER)
+        except CorreoYaRegistrado as exc:
+            raise AuthError(
+                409, "email_taken", "Ya existe una cuenta con ese correo."
+            ) from exc
+        except AlmacenAuthNoDisponible as exc:
+            raise AuthStorageError() from exc
+
+        try:
+            perfil = self._profiles.create_perfil(correo_norm, nombre_norm, "ciudadano")
+        except AlmacenPerfilNoDisponible as exc:
+            # Sin transacción distribuida: se deshace la identidad SQLite.
+            self._users.delete_usuario(usuario.id)
+            raise AuthError(
+                503, "db_unavailable", "La base de datos no está disponible."
+            ) from exc
+
+        if perfil is None:
+            # Un perfil previo en Mongo es intocable: no se hereda la identidad.
+            self._users.delete_usuario(usuario.id)
+            raise AuthError(409, "email_taken", "Ya existe una cuenta con ese correo.")
+
+        return self._iniciar_sesion(usuario, token_previo)
+
+    def _iniciar_sesion(self, usuario: Usuario, token_previo: str | None) -> SesionIniciada:
+        ahora = self._clock.now()
         # Anti-fixation: si venía una cookie válida, la revocamos antes de crear una nueva.
         if token_previo:
             self._sessions.delete(_hash_token(token_previo))
@@ -82,7 +136,7 @@ class AuthService:
         token = secrets.token_urlsafe(32)
         sesion = Sesion(
             token_hash=_hash_token(token),
-            user_id=cred.usuario.id,
+            user_id=usuario.id,
             creada_en=ahora,
             expira_en=ahora + self._ttl,
         )
@@ -92,7 +146,22 @@ class AuthService:
         except AlmacenAuthNoDisponible as exc:
             raise AuthStorageError() from exc
 
-        return SesionIniciada(token=token, usuario=cred.usuario, expira_en=sesion.expira_en)
+        return SesionIniciada(token=token, usuario=usuario, expira_en=sesion.expira_en)
+
+    @staticmethod
+    def _validar_contrasena(contrasena: str) -> None:
+        if len(contrasena) < PASSWORD_MIN_CHARS:
+            raise AuthError(
+                422,
+                "invalid_request",
+                f"La contraseña debe tener al menos {PASSWORD_MIN_CHARS} caracteres.",
+            )
+        if len(contrasena.encode("utf-8")) > 72:
+            raise AuthError(
+                422,
+                "invalid_request",
+                "La contraseña no puede superar 72 bytes en UTF-8.",
+            )
 
     def logout(self, token: str | None) -> None:
         if not token:

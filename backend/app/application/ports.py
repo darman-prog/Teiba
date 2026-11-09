@@ -3,7 +3,7 @@ from dataclasses import dataclass, field
 from datetime import datetime
 from typing import Any, Protocol
 
-from app.domain.auth.models import Credenciales, Sesion, Usuario
+from app.domain.auth.models import Credenciales, Rol, Sesion, Usuario
 
 
 class DeviceRepository(Protocol):
@@ -47,6 +47,15 @@ class ProfileRepository(Protocol):
     def get_by_id(self, perfil_id: Any) -> dict[str, Any] | None: ...
 
     def list_operadores(self) -> list[dict[str, Any]]: ...
+
+    def create_perfil(
+        self,
+        correo: str,
+        nombre: str,
+        rol: str,
+    ) -> dict[str, Any] | None:
+        """Crea el perfil si el correo no existe; `None` si ya estaba tomado."""
+        ...
 
 
 class MaintenanceRepository(Protocol):
@@ -145,6 +154,12 @@ class UserRepository(Protocol):
     def get_credentials(self, correo: str) -> Credenciales | None: ...
 
     def get_by_id(self, user_id: int) -> Usuario | None: ...
+
+    def create_usuario(self, correo: str, password_hash: str, rol: Rol) -> Usuario: ...
+
+    def delete_usuario(self, user_id: int) -> None:
+        """Compensación del registro cuando falla la creación del perfil."""
+        ...
 
 
 class SessionRepository(Protocol):

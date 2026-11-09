@@ -2,10 +2,13 @@
 
 La API usa `snake_case`; los tipos del frontend espejan estos nombres.
 """
+import re
 from datetime import datetime
 from typing import Any, Literal
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator
+
+_EMAIL_RE = re.compile(r"^[^@\s]+@[^@\s]+\.[^@\s]+$")
 
 
 class MongoHealth(BaseModel):
@@ -44,6 +47,39 @@ class LoginRequest(BaseModel):
         if len(v.encode("utf-8")) > 72:
             raise ValueError("La contraseña supera el límite de 72 bytes.")
         return v
+
+
+class RegisterRequest(BaseModel):
+    """Alta pública. El rol nunca viaja en el body: lo fija el servidor."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    correo: str = Field(min_length=5, max_length=254)
+    contrasena: str = Field(min_length=12, max_length=256)
+    nombre: str | None = Field(default=None, max_length=80)
+
+    @field_validator("correo")
+    @classmethod
+    def correo_valido(cls, v: str) -> str:
+        limpio = v.strip().lower()
+        if not _EMAIL_RE.match(limpio):
+            raise ValueError("El correo no tiene un formato válido.")
+        return limpio
+
+    @field_validator("contrasena")
+    @classmethod
+    def contrasena_no_supera_72_bytes(cls, v: str) -> str:
+        if len(v.encode("utf-8")) > 72:
+            raise ValueError("La contraseña supera el límite de 72 bytes.")
+        return v
+
+    @field_validator("nombre")
+    @classmethod
+    def nombre_limpio(cls, v: str | None) -> str | None:
+        if v is None:
+            return None
+        limpio = v.strip()
+        return limpio or None
 
 
 class AuthUser(BaseModel):

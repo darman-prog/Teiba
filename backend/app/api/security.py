@@ -89,6 +89,33 @@ class _RateLimitLogin:
             self._hits.pop(clave, None)
 
 
+class _RateLimitRegistro:
+    """Cupo de altas por IP; cuenta intentos válidos y rechazados."""
+
+    def __init__(self, settings: Settings) -> None:
+        self._max = max(1, settings.auth_register_max_per_window)
+        self._ventana = max(1, settings.auth_register_window_seconds)
+        self._hits: dict[str, deque[float]] = {}
+        self._lock = Lock()
+
+    def comprobar(self, request: Request) -> None:
+        ip = request.client.host if request.client else "unknown"
+        ahora = time.monotonic()
+        with self._lock:
+            hits = self._hits.setdefault(ip, deque())
+            while hits and ahora - hits[0] >= self._ventana:
+                hits.popleft()
+            if len(hits) >= self._max:
+                reintento = max(1, int(self._ventana - (ahora - hits[0])) + 1)
+                raise ApiError(
+                    429,
+                    "rate_limited",
+                    "Demasiados registros. Espera unos segundos.",
+                    {"retry_after": reintento},
+                )
+            hits.append(ahora)
+
+
 async def verificar_origen(request: Request) -> None:
     await _VerificadorOrigen(get_settings()).verificar(request)
 

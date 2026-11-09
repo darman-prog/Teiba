@@ -19,3 +19,11 @@ class RecursoProhibido(Exception):
 
 class AlmacenAuthNoDisponible(Exception):
     """SQLite caído o inaccesible: se traduce a 503 auth_unavailable."""
+
+
+class CorreoYaRegistrado(Exception):
+    """Ya existe una identidad SQLite con ese correo."""
+
+
+class AlmacenPerfilNoDisponible(Exception):
+    """Mongo caído o inaccesible al crear o leer el perfil de dominio."""
