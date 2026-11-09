@@ -97,7 +97,7 @@ respuesta trazable.
 ### Excluye
 
 - Neo4j, base de grafos, embeddings y RAG vectorial.
-- Registro, reset de contraseña, 2FA, OAuth y despliegue público.
+- Reset de contraseña, 2FA, OAuth y despliegue público.
 - CRUD de parques, sectores, inventario o usuarios; el panel de mantenimientos usa lectura de incidentes e inventario y un CRUD acotado de tareas.
 - Mapas, gráficas, reportes descargables y acciones físicas.
 - Edición del documento Word de la entrega.
@@ -428,11 +428,12 @@ y no debe hacer comparaciones por su cuenta.
 
 ### Tests
 
-- 76 tests pasan.
-- Unitarios: rangos, validación, tools, bucle con LLM falso.
+- 178 tests recolectados: 156 pasan y 22 se omiten cuando Mongo no está disponible.
+- Unitarios: rangos, validación, tools, bucle con LLM falso y mantenimientos.
 - Integración: repositorios contra `teiba_test` y contrato de esquema contra
-  `teiba_db`.
-- API: health, errores, CORS, rate limit, agente, sensores y seguridad.
+  `teiba_db`; se omiten sin Mongo.
+- API: health, errores, CORS, rate limit, agente, sensores, auth, registro y
+  mantenimientos.
 - `ruff check .` limpio.
 
 Comandos:
@@ -452,6 +453,7 @@ campos usan `snake_case`, salvo `traceId` en el contrato de errores.
 | Método | Ruta | Entrada | Éxito |
 |---|---|---|---|
 | `POST` | `/api/auth/login` | `{ "correo": "...", "contrasena": "..." }` | 200 + cookie + `perfil` |
+| `POST` | `/api/auth/register` | `{ "correo", "contrasena", "nombre"? }` | 201 + cookie + `perfil` ciudadano; rol fijo `user` |
 | `POST` | `/api/auth/logout` | cookie | 204 |
 | `GET` | `/api/auth/me` | cookie | 200 con `usuario`, `perfil`, `expira_en` |
 | `GET` | `/api/health` | — | 200 con `status`, `mongo`, `llm`, `auth`, `version` |
@@ -593,24 +595,27 @@ La guía de Postman, con ejemplos y tests, está en
 
 ## 8. Frontend y estado actual
 
-El frontend existe solo como **scaffold de Vite**:
+El frontend es una SPA React con Tailwind 4 y React Router:
 
-- React 19.3.1, Vite 8.3.4, TypeScript 6.0.3, `@vitejs/plugin-react`.
-- `oxlint` como linter.
-- Sin Tailwind, sin `lucide-react`, sin tests y sin `node_modules`.
-- `src/App.tsx` sigue siendo el template de Vite.
-
-La UI está **pausada** hasta que existan los prototipos de diseño. Cuando se
-retome, la estructura objetivo es:
+- React 19, Vite, TypeScript, Tailwind 4, `lucide-react`, `oxlint` y Vitest.
+- Tokens y tipografías en `Docs/DESIGN.md`; primitivas en `frontend/src/shared/ui`.
+- Rutas: `/login`, `/registro`, `/parques`, `/mantenimientos`, `/sage` y
+  `/perfil-no-configurado`, con guards por rol de acceso y perfil de dominio.
+- `AuthProvider` mantiene la sesión; la cookie `teiba_session` es `HttpOnly` y el
+  token nunca se guarda en JS.
+- El registro público crea `user`/ciudadano; el login y `/me` hidratan `perfil`.
+- El panel Sage, el libro de parques y la vista de mantenimientos ya consumen la API.
 
 ```text
 frontend/src/
-├── components/   UI presentacional
-├── hooks/        useAgent, useSensors
-├── api/          client, agent, sensors
-├── types/        DTOs del contrato
-├── lib/          formato y utilidades
-└── test/         setup de Vitest
+├── api/          cliente centralizado (timeout, errores, auth)
+├── app/          shell, provider, rutas y guards
+├── features/     auth, agent, parks, maintenance, sensors, showcase
+├── hooks/        estado de datos por pantalla
+├── lib/          navegación, formato y utilidades
+├── shared/ui/    primitivas (Button, Surface, FieldLabel, Chip…)
+├── test/         fixtures y setup de Vitest
+└── types/        DTOs espejo del contrato
 ```
 
 Reglas:
@@ -619,7 +624,7 @@ Reglas:
 - El cliente API centraliza timeout y parseo de errores.
 - No se duplican rangos ni evaluación de dominio.
 - La key y la URI de Mongo nunca llegan al navegador.
-- Tailwind y los tokens se instalan al iniciar el paso 8.
+- Los colores, fuentes y radios salen de `DESIGN.md` y sus tokens CSS.
 
 ## 9. Brief de diseño del panel
 
@@ -791,9 +796,10 @@ npm install
 npm run dev
 ```
 
-El scaffold abre en `http://localhost:5173`, pero todavía muestra el template de
-Vite. La UI final se implementa después de los prototipos. Cuando exista,
-consumirá `http://127.0.0.1:8000` mediante `VITE_API_URL`.
+El frontend abre en `http://localhost:5173` y hace proxy de `/api` a
+`http://127.0.0.1:8000`, así que la cookie de sesión viaja same-origin. Mantén el
+proxy: la cookie es `SameSite=Lax` y CORS no acepta credenciales cruzadas, así que
+`VITE_API_URL` con otro origen no conserva la sesión.
 
 ### Tests
 

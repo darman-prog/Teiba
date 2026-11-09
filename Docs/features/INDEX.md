@@ -1,6 +1,6 @@
 ---
 status: vigente
-last_reviewed: 2026-11-02
+last_reviewed: 2026-11-09
 ---
 
 # Registro de features
@@ -9,7 +9,8 @@ last_reviewed: 2026-11-02
 
 | Fecha | Cambio | Estado | Área | Alcance | Registro | Evidencia |
 |---|---|---|---|---|---|---|
-| 2026-10-31 | Login local SQLite + roles admin/operator/user | en-curso | backend | Cookie, bcrypt, RBAC, CSRF, perfil, login/guards/AccountMenu | [007-login-sqlite.md](007-login-sqlite.md) | suite 168 backend + 49 frontend |
+| 2026-11-09 | Registro público y acceso visual MVP | en-curso | frontend | Alta de ciudadano, `AuthLayout`/`RegisterView`, README y roles demo | [012-registro-auth-mvp.md](012-registro-auth-mvp.md) | 57 frontend; 178 backend (22 skip Mongo); UI limpio |
+| 2026-10-31 | Login local SQLite + roles admin/operator/user | en-curso | backend | Cookie, bcrypt, RBAC, CSRF, perfil, login/guards/AccountMenu | [007-login-sqlite.md](007-login-sqlite.md) | suite 178 backend (22 skip Mongo) + 57 frontend |
 | 2026-10-24 | Agente Sage y panel de monitoreo | en-curso | backend | Backend y seed listos; frontend en pausa | [002-agente-sage-panel.md](002-agente-sage-panel.md) | - |
 | 2026-10-27 | Roles de demostración y Libro de parques | en-curso | datos | Endpoints read-only de parques + frontend con roles | [003-roles-libro-parques.md](003-roles-libro-parques.md) | criterios 1-2 registrados |
 | 2026-10-28 | Bolder artístico del panel Sage | en-curso | frontend | Firma de un solo hilo copper + hardening P0-P2 | [004-sage-bolder.md](004-sage-bolder.md) | critique 24/40, tests 28/28, detect limpio |

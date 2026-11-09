@@ -16,10 +16,17 @@ docker start mongo-iot
 # 2. Lecturas frescas para la demo
 cd backend
 .\.venv\Scripts\python.exe -m app.scripts.seed_demo
+.\.venv\Scripts\python.exe -m app.scripts.seed_auth
+.\.venv\Scripts\python.exe -m app.scripts.seed_mantenimientos
+.\.venv\Scripts\python.exe -m app.scripts.ensure_indexes
 
 # 3. API en localhost
 .\.venv\Scripts\python.exe -m uvicorn app.main:app --host 127.0.0.1 --port 8000
 ```
+
+`seed_auth` lee `AUTH_*_PASSWORD` de `backend/.env`; sin ellas no crea cuentas.
+`seed_mantenimientos` crea los perfiles de dominio y `ensure_indexes` el índice
+único de correo.
 
 Para probar el agente necesitas una `OPENCODE_API_KEY` válida en
 `backend/.env`. Esa clave es del backend hacia OpenCode Go, **no** es un token
@@ -78,6 +85,7 @@ automáticamente.
 | Método | Ruta | Auth | Entrada | Éxito | Errores |
 |---|---|---|---|---|---|
 | `POST` | `/api/auth/login` | — | `{"correo","contrasena"}` | 200 + cookie + `perfil` | 401, 422, 429 |
+| `POST` | `/api/auth/register` | — | `{"correo","contrasena","nombre"?}` | 201 + cookie + `perfil` ciudadano | 403 CSRF, 409, 422, 429, 503 |
 | `POST` | `/api/auth/logout` | cookie | — | 204 | 403 CSRF |
 | `GET` | `/api/auth/me` | cookie | — | 200 `{usuario,perfil,expira_en}` | 401 |
 | `GET` | `/api/health` | — | — | 200 `status,mongo,llm,auth,version` | 500 |
@@ -110,9 +118,11 @@ Notas del contrato:
 
 - `total` es la cantidad de ítems devueltos, no el total de la colección. No
   hay paginación: sube `limite` hasta 50.
-- Autenticacion local (feature 007): la sesion via cookie `HttpOnly` `teiba_session`
-  obtenida en `/api/auth/login`. No se usa `Authorization`. La `OPENCODE_API_KEY`
-  vive en `backend/.env`.
+- Autenticacion local (features 007 y 012): la sesion via cookie `HttpOnly`
+  `teiba_session` obtenida en `/api/auth/login` o `/api/auth/register`. No se usa
+  `Authorization`. La `OPENCODE_API_KEY` vive en `backend/.env`.
+- El registro público crea siempre rol de acceso `user` y perfil `ciudadano`; el
+  cliente no puede enviar `rol`. Los operadores demo vienen de `seed_mantenimientos`.
 - Roles de acceso: `admin`, `operator`, `user`. Roles de dominio en `perfil.rol`:
   `administrador`, `operador_mantenimiento`, `ciudadano`.
 - `perfil` puede ser `null` si el correo no existe en Mongo `usuarios` o Mongo no
@@ -166,7 +176,36 @@ el que crea los perfiles demo en Mongo. El login de operador usa
 `operador@teiba.local` y devuelve `usuario.rol="operator"` con
 `perfil.rol="operador_mantenimiento"`.
 
-### 4.2 Health
+### 4.2 Registro público
+
+```
+POST {{baseUrl}}/api/auth/register
+Origin: http://localhost:5173
+Content-Type: application/json
+
+{"correo":"nueva@teiba.local","contrasena":"<mínimo 12 caracteres>","nombre":"Nueva Ciudadana"}
+```
+
+Respuesta 201 (misma forma que el login, con cookie nueva):
+```
+{
+  "usuario": {"correo": "nueva@teiba.local", "rol": "user"},
+  "perfil": {
+    "id": "<ObjectId de Mongo>",
+    "nombre": "Nueva Ciudadana",
+    "correo": "nueva@teiba.local",
+    "rol": "ciudadano"
+  },
+  "expira_en": "2026-11-09T22:00:00Z"
+}
+```
+
+El body no acepta `rol` (`extra=forbid`): el servidor fija `user` + `ciudadano`.
+Correo repetido → 409 `email_taken`; contraseña corta o de más de 72 bytes → 422;
+Mongo caído → 503 `db_unavailable` y se revierte la identidad SQLite. El alta
+también tiene rate limit por IP.
+
+### 4.3 Health
 
 ```
 GET {{baseUrl}}/api/health
@@ -200,7 +239,7 @@ pm.test("Mongo responde", () => pm.expect(body.mongo.ok).to.eql(true));
 pm.test("Base teiba_db", () => pm.expect(body.mongo.db).to.eql("teiba_db"));
 ```
 
-### 4.2 Sensores
+### 4.4 Sensores
 
 ```
 GET {{baseUrl}}/api/sensores?tipo=calidad_suelo&limite=5
@@ -262,7 +301,7 @@ GET {{baseUrl}}/api/sensores?limite=0    -> 422 invalid_request
 GET {{baseUrl}}/api/sensores?tipo=otro   -> 422 invalid_request
 ```
 
-### 4.3 Agente
+### 4.5 Agente
 
 ```
 POST {{baseUrl}}/api/agente/consulta
@@ -338,7 +377,7 @@ pm.test("Meta completa", () => {
 });
 ```
 
-### 4.4 Errores
+### 4.6 Errores
 
 Contrato único:
 
