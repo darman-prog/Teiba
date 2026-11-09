@@ -1,6 +1,6 @@
 ---
 id: 012
-status: en-curso
+status: cerrada
 area: frontend
 tarea: -
 created: 2026-11-09
@@ -50,7 +50,7 @@ El frontend ya tenía `LoginView`, `AuthProvider`, guards y `AccountMenu`.
 | 4 | 2026-11-09 | cd frontend && npx vitest run src/features/auth src/app/AuthRoutes.test.tsx src/app/App.axe.test.tsx | 0 | 3ce92ce |
 | 5 | 2026-11-09 | cd frontend && npm run typecheck && npm run lint && npx vitest run && npm run build | 0 | 3ce92ce |
 | 6 | 2026-11-09 | cd frontend && npm run check:ui && npm run detect:ui | 0 | 3ce92ce |
-| 7 | 2026-11-09 | Select-String README.md,Docs/API/README.md -Pattern 'AUTH_\w+PASSWORD=\S+|admin12345678|operator12345678|user12345678' | 0 | pendiente |
+| 7 | 2026-11-09 | Select-String README.md,Docs/API/README.md -Pattern 'AUTH_\w+PASSWORD=\S+|admin12345678|operator12345678|user12345678' | 0 | a15fc85 |
 
 ## Rollback
 Revertir los commits de `feat/auth-register-mvp`; no hay migración de datos. Los

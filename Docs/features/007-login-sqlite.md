@@ -1,10 +1,10 @@
 ---
 id: 007
-status: borrador
+status: cerrada
 area: backend
 tarea: -
 created: 2026-10-31
-updated: 2026-10-31
+updated: 2026-11-09
 ---
 # Feature 007 — Login local con SQLite, roles y perfil de dominio
 
