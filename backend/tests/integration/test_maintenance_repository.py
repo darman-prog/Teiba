@@ -41,6 +41,19 @@ def test_perfiles_por_correo_y_operadores(mongo_db):
     assert admin["nombre"] == "Ana Administradora"
 
 
+def test_create_perfil_no_duplica_correo(mongo_db):
+    repo = MongoProfileRepository(mongo_db)
+
+    creado = repo.create_perfil("nuevo@teiba.local", "Nuevo Ciudadano", "ciudadano")
+    assert creado is not None
+    assert creado["rol"] == "ciudadano"
+    assert repo.get_by_correo("nuevo@teiba.local")["nombre"] == "Nuevo Ciudadano"
+
+    # Un segundo alta sobre el mismo correo no secuestra el perfil existente.
+    assert repo.create_perfil("nuevo@teiba.local", "Otro", "administrador") is None
+    assert repo.get_by_correo("nuevo@teiba.local")["rol"] == "ciudadano"
+
+
 def test_lista_tareas_ordena_y_resuelve_referencias(mongo_db):
     repo = MongoMaintenanceRepository(mongo_db)
 
