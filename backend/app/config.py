@@ -6,15 +6,26 @@ expone en respuestas ni en logs.
 from functools import lru_cache
 from pathlib import Path
 
+from dotenv import load_dotenv
 from pydantic import SecretStr, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
+
+_BACKEND_DIR = Path(__file__).resolve().parents[1]
+_ENV_FILE = _BACKEND_DIR / ".env"
+
+
+def cargar_env_local() -> None:
+    """Carga backend/.env en os.environ para scripts que no usan Settings."""
+    if _ENV_FILE.exists():
+        # No pisa variables ya exportadas en la shell.
+        load_dotenv(_ENV_FILE, override=False)
 
 
 class Settings(BaseSettings):
     """Configuración única de la API y del agente Sage."""
 
     model_config = SettingsConfigDict(
-        env_file=".env",
+        env_file=str(_ENV_FILE),
         env_file_encoding="utf-8",
         extra="ignore",
         case_sensitive=False,

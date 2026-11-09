@@ -13,12 +13,13 @@ import os
 import sys
 from datetime import UTC, datetime
 
-from app.config import get_settings
+from app.config import cargar_env_local, get_settings
 from app.infrastructure.passwords import BcryptPasswordHasher
 from app.infrastructure.sqlite_auth import BaseAuth
 
 
 def main() -> int:
+    cargar_env_local()
     settings = get_settings()
 
     cuentas = [

@@ -10,6 +10,10 @@ import sys
 
 import httpx
 
+from app.config import cargar_env_local
+
+cargar_env_local()
+
 API_URL = os.getenv("API_URL", "http://127.0.0.1:8000")
 ORIGIN = os.getenv("ORIGIN", "http://localhost:5173")
 PREGUNTA = "¿Cómo está el sensor de calidad del suelo del Sector Norte?"
