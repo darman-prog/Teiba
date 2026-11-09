@@ -19,6 +19,7 @@ last_reviewed: 2026-11-09
 
 | Fecha | Cambio | Estado | Área | Alcance | Registro | Evidencia |
 |---|---|---|---|---|---|---|
+| 2026-11-09 | Tareas antiguas sin `prioridad` | cerrada | backend | Fallback `media` y backfill del seed para no romper el listado | [014-prioridad-legacy.md](014-prioridad-legacy.md) | 10 tareas migradas; 183 tests; ruff limpio |
 | 2026-11-09 | Scripts de demo leen `backend/.env` | cerrada | backend | `seed_auth`, `smoke_demo` y `check_model` sin exportar variables a mano | [013-scripts-env.md](013-scripts-env.md) | seed + login/registro reales; suite y ruff verdes |
 | 2026-11-09 | Registro público y acceso visual MVP | cerrada | frontend | Alta de ciudadano, `AuthLayout`/`RegisterView`, README y roles demo | [012-registro-auth-mvp.md](012-registro-auth-mvp.md) | criterios 1-7; 57 frontend; 179 backend; UI limpio |
 | 2026-11-09 | Login local SQLite + roles admin/operator/user | cerrada | backend | Cookie, bcrypt, RBAC, CSRF, perfil, login/guards/AccountMenu | [007-login-sqlite.md](007-login-sqlite.md) | suite 179 backend + 57 frontend |
